@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timothy Whitehead | The Medallion Fund</title>
+    <meta name="description" content="A common layout on the web, often called the 'Holy Grail'">
+    <meta name="author" content="Timothy Whitehead">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        header, footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em 0;
+        }
+        nav {
+            background-color: #444;
+            color: white;
+            padding: 1em;
+        }
+        nav ul {
+            color: thistle;
+            list-style-type: none;
+            padding: 0;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 1em;
+        }
+        .sidebar-left, .sidebar-right {
+            background-color: #555;
+            padding: 1em;
+        }
+        .sidebar-left {
+            width: 200px;
+        }
+        .sidebar-right {
+            width: 200px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar-left, .sidebar-right {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>The Medallion Fund Bot</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="https://youtu.be/76flAluxjkY?si=VGeDl13J9JuAj3ej">What is the Medallion Fund?</a></li>
+            <li><a href="https://youtu.be/J3VEniAKg5A?si=7DwUte6e1R3cXK1m">Build your own Robot</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section>
+            <h2>Heading</h2>
+            <p>This is a paragraph of text in the main content area. It can contain any information you want to share with your visitors.</p>
+        </section>
+        <section>
+            <h2>Another Heading</h2>
+            <p>This is another paragraph of text. You can add more sections as needed to organize your content.</p>
+        </section>
+    </main>
+    <aside>
+        <img src="files/wdd130/images/market.jpg" alt="Stock Market" style="width:100%; height:auto;">
+    </aside>
+    <footer>
+
+    </footer>
+    <div class="container">
+        <nav class="sidebar-left">
+            <h2>Left Sidebar</h2>
+            <p>Navigation links go here.</p>
+        </nav>
+        <main class="main-content">
+            <h2>Main Content Area</h2>
+            <p>This is where the main content goes.</p>
+        </main>
+        <nav class="sidebar-right">
+            <h2>Right Sidebar</h2>
+            <p>Additional links or information can go here.</p>
+        </nav>
+    </div>
+    <footer>
+        <p>&copy;<span id="currentYear"></span> Timothy Whitehead | &#9728 Arizona, United States of America &#9729 </p>
+        <script>
+        document.getElementById("currentYear").textContent = new Date().getFullYear();
+        </script>
+    </footer>
+</body>
+</html>
