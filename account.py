@@ -2,17 +2,14 @@
 import os
 from uuid import uuid4
 
-from robin_stocks.robinhood.helper import *
-from robin_stocks.robinhood.profiles import *
-from robin_stocks.robinhood.stocks import *
-from robin_stocks.robinhood.urls import *
+import robin_stocks
 
 
 @login_required
 def load_phoenix_account(info=None):
     """Returns unified information about your account.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def load_phoenix_account(info=None):
     :type info: Optional[str]
     :returns: [list] Returns a list of dictionaries of key/value pairs. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -48,46 +45,46 @@ def load_phoenix_account(info=None):
     url = phoenix_url()
     data = request_get(url, 'regular')
     return(filter_data(data, info))
-
-@login_required
-def get_historical_portfolio(interval=None, span='week', bounds='regular',info=None):
+    url = robin_stocks.robinhood.urls.phoenix_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'regular')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     interval_check = ['5minute', '10minute', 'hour', 'day', 'week']
-    span_check = ['day', 'week', 'month', '3month', 'year', '5year', 'all']
-    bounds_check = ['extended', 'regular', 'trading']
+@robin_stocks.robinhood.helper.login_required
+def get_historical_portfolio(interval=None, span='week', bounds='regular',info=None):
 
     if interval not in interval_check:
         if interval is None and (bounds != 'regular' and span != 'all'):
             print ('ERROR: Interval must be None for "all" span "regular" bounds', file=get_output())
             return ([None])
         print(
-            'ERROR: Interval must be "5minute","10minute","hour","day",or "week"', file=get_output())
+            print ('ERROR: Interval must be None for "all" span "regular" bounds', file=None)
+            return ([None])
+        print(
+            'ERROR: Interval must be "5minute","10minute","hour","day",or "week"', file=None)
         return([None])
     if span not in span_check:
-        print('ERROR: Span must be "day","week","month","3month","year",or "5year"', file=get_output())
+        print('ERROR: Span must be "day","week","month","3month","year",or "5year"', file=None)
         return([None])
     if bounds not in bounds_check:
         print('ERROR: Bounds must be "extended","regular",or "trading"')
         return([None])
     if (bounds == 'extended' or bounds == 'trading') and span != 'day':
-        print('ERROR: extended and trading bounds can only be used with a span of "day"', file=get_output())
+        print('ERROR: extended and trading bounds can only be used with a span of "day"', file=None)
         return([None])
 
-    account = load_account_profile(info='account_number')
-    url = portfolis_historicals_url(account)
+    account = robin_stocks.robinhood.profiles.load_account_profile(info='account_number')
+    url = robin_stocks.robinhood.urls.portfolis_historicals_url(account)
     payload = {
         'interval': interval,
         'span': span,
         'bounds': bounds
     }
-    data = request_get(url, 'regular', payload)
+    data = robin_stocks.robinhood.helper.request_get(url, 'regular', payload)
 
-    return(filter_data(data, info))
-
-@login_required
-def get_all_positions(info=None):
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns a list containing every position ever traded.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_all_positions(info=None):
     :type info: Optional[str]
     :returns: [list] Returns a list of dictionaries of key/value pairs for each ticker. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -113,14 +110,14 @@ def get_all_positions(info=None):
     url = positions_url()
     data = request_get(url, 'pagination')
 
-    return(filter_data(data, info))
+    url = robin_stocks.robinhood.urls.positions_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
 
-
-@login_required
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_open_stock_positions(account_number=None, info=None):
     """Returns a list of stocks that are currently held.
-
-    :param acccount_number: the robinhood account number.
+@robin_stocks.robinhood.helper.login_required
+def get_open_stock_positions(account_number=None, info=None):
     :type acccount_number: Optional[str]
     :param info: Will filter the results to get a specific value.
     :type info: Optional[str]
@@ -148,15 +145,15 @@ def get_open_stock_positions(account_number=None, info=None):
     url = positions_url(account_number=account_number)
     payload = {'nonzero': 'true'}
     data = request_get(url, 'pagination', payload)
+    url = robin_stocks.robinhood.urls.positions_url(account_number=account_number)
+    payload = {'nonzero': 'true'}
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination', payload)
 
-    return(filter_data(data, info))
-
-
-@login_required
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_dividends(info=None):
     """Returns a list of dividend trasactions that include information such as the percentage rate,
-    amount, shares of held stock, and date paid.
-
+@robin_stocks.robinhood.helper.login_required
+def get_dividends(info=None):
     :param info: Will filter the results to get a specific value.
     :type info: Optional[str]
     :returns: [list] Returns a list of dictionaries of key/value pairs for each divident payment. If info parameter is provided, \
@@ -180,14 +177,14 @@ def get_dividends(info=None):
     url = dividends_url()
     data = request_get(url, 'pagination')
 
-    return(filter_data(data, info))
+    url = robin_stocks.robinhood.urls.dividends_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
 
-
-@login_required
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_total_dividends():
     """Returns a float number representing the total amount of dividends paid to the account.
-
-    :returns: Total dollar amount of dividends paid to the account as a 2 precision float.
+@robin_stocks.robinhood.helper.login_required
+def get_total_dividends():
 
     """
     url = dividends_url()
@@ -202,8 +199,8 @@ def get_total_dividends():
 @login_required
 def get_dividends_by_instrument(instrument, dividend_data):
     """Returns a dictionary with three fields when given the instrument value for a stock
-
-    :param instrument: The instrument to get the dividend data.
+@robin_stocks.robinhood.helper.login_required
+def get_dividends_by_instrument(instrument, dividend_data):
     :type instrument: str
     :param dividend_data: The information returned by get_dividends().
     :type dividend_data: list
@@ -232,8 +229,8 @@ def get_dividends_by_instrument(instrument, dividend_data):
 @login_required
 def get_notifications(info=None):
     """Returns a list of notifications.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_notifications(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each notification. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -242,26 +239,26 @@ def get_notifications(info=None):
     url = notifications_url()
     data = request_get(url, 'pagination')
 
-    return(filter_data(data, info))
+    url = robin_stocks.robinhood.urls.notifications_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
 
-
-@login_required
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_latest_notification():
     """Returns the time of the latest notification.
-
-    :returns: Returns a dictionary of key/value pairs. But there is only one key, 'last_viewed_at'
+@robin_stocks.robinhood.helper.login_required
+def get_latest_notification():
 
     """
     url = notifications_url(True)
     data = request_get(url)
     return(data)
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.notifications_url(True)
+    data = robin_stocks.robinhood.helper.request_get(url)
+    return(data)
 def get_wire_transfers(info=None):
     """Returns a list of wire transfers.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_wire_transfers(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each wire transfer. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -270,13 +267,13 @@ def get_wire_transfers(info=None):
     url = wiretransfers_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.wiretransfers_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_margin_calls(symbol=None):
     """Returns either all margin calls or margin calls for a specific stock.
-
-    :param symbol: Will determine which stock to get margin calls for.
+@robin_stocks.robinhood.helper.login_required
+def get_margin_calls(symbol=None):
     :type symbol: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each margin call.
 
@@ -284,23 +281,23 @@ def get_margin_calls(symbol=None):
     url = margin_url()
     if symbol:
         try:
+    url = robin_stocks.robinhood.urls.margin_url()
+    if symbol:
+        try:
             symbol = symbol.upper().strip()
         except AttributeError as message:
-            print(message, file=get_output())
+            print(message, file=None)
             return None
-        payload = {'equity_instrument_id', id_for_stock(symbol)}
-        data = request_get(url, 'results', payload)
+        payload = {'equity_instrument_id': robin_stocks.robinhood.stocks.id_for_stock(symbol)}
+        data = robin_stocks.robinhood.helper.request_get(url, 'results', payload)
     else:
-        data = request_get(url, 'results')
+        data = robin_stocks.robinhood.helper.request_get(url, 'results')
 
     return(data)
-
-
-@login_required
 def withdrawl_funds_to_bank_account(ach_relationship, amount, info=None):
     """Submits a post request to withdraw a certain amount of money to a bank account.
-
-    :param ach_relationship: The url of the bank account you want to withdrawl the money to.
+@robin_stocks.robinhood.helper.login_required
+def withdrawl_funds_to_bank_account(ach_relationship, amount, info=None):
     :type ach_relationship: str
     :param amount: The amount of money you wish to withdrawl.
     :type amount: float
@@ -312,19 +309,19 @@ def withdrawl_funds_to_bank_account(ach_relationship, amount, info=None):
     url = banktransfers_url()
     payload = {
         "amount": amount,
+    url = robin_stocks.robinhood.urls.banktransfers_url()
+    payload = {
+        "amount": amount,
         "direction": "withdraw",
         "ach_relationship": ach_relationship,
         "ref_id": str(uuid4())
     }
-    data = request_post(url, payload)
-    return(filter_data(data, info))
-
-
-@login_required
+    data = robin_stocks.robinhood.helper.request_post(url, payload)
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def deposit_funds_to_robinhood_account(ach_relationship, amount, info=None):
     """Submits a post request to deposit a certain amount of money from a bank account to Robinhood.
-
-    :param ach_relationship: The url of the bank account you want to deposit the money from.
+@robin_stocks.robinhood.helper.login_required
+def deposit_funds_to_robinhood_account(ach_relationship, amount, info=None):
     :type ach_relationship: str
     :param amount: The amount of money you wish to deposit.
     :type amount: float
@@ -336,18 +333,18 @@ def deposit_funds_to_robinhood_account(ach_relationship, amount, info=None):
     url = banktransfers_url()
     payload = {
         "amount": amount,
+    url = robin_stocks.robinhood.urls.banktransfers_url()
+    payload = {
+        "amount": amount,
         "direction": "deposit",
         "ach_relationship": ach_relationship,
         "ref_id": str(uuid4())
     }
-    data = request_post(url, payload)
-    return(filter_data(data, info))
-
-@login_required
-def get_linked_bank_accounts(info=None):
+    data = robin_stocks.robinhood.helper.request_post(url, payload)
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns all linked bank accounts.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_linked_bank_accounts(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each bank.
 
@@ -355,13 +352,13 @@ def get_linked_bank_accounts(info=None):
     url = linked_url()
     data = request_get(url, 'results')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.linked_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'results')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_bank_account_info(id, info=None):
     """Returns a single dictionary of bank information
-
-    :param id: The bank id.
+@robin_stocks.robinhood.helper.login_required
+def get_bank_account_info(id, info=None):
     :type id: str
     :param info: Will filter the results to get a specific value.
     :type info: Optional[str]
@@ -372,13 +369,13 @@ def get_bank_account_info(id, info=None):
     url = linked_url(id)
     data = request_get(url)
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.linked_url(id)
+    data = robin_stocks.robinhood.helper.request_get(url)
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def unlink_bank_account(id):
     """Unlinks a bank account.
-
-    :param id: The bank id.
+@robin_stocks.robinhood.helper.login_required
+def unlink_bank_account(id):
     :type id: str
     :returns: Information returned from post request.
 
@@ -386,13 +383,13 @@ def unlink_bank_account(id):
     url = linked_url(id, True)
     data = request_post(url)
     return(data)
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.linked_url(id, True)
+    data = robin_stocks.robinhood.helper.request_post(url)
+    return(data)
 def get_bank_transfers(direction=None, info=None):
     """Returns all bank transfers made for the account.
-
-    :param direction: Possible values are 'received'. If left blank, function will return all withdrawls and deposits \
+@robin_stocks.robinhood.helper.login_required
+def get_bank_transfers(direction=None, info=None):
         that are initiated from Robinhood. If the value is 'received', funciton will return transfers intiated from \
         your bank rather than Robinhood.
     :type direction: Optional[str]
@@ -405,12 +402,12 @@ def get_bank_transfers(direction=None, info=None):
     url = banktransfers_url(direction)
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-@login_required
-def get_unified_transfers(info=None):
+    url = robin_stocks.robinhood.urls.banktransfers_url(direction)
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns all transfers made for the account.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_unified_transfers(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each transfer. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -419,8 +416,11 @@ def get_unified_transfers(info=None):
     url = unifiedtransfers_url()
     data = request_get(url, 'results')
     return(filter_data(data, info))
-
-@login_required
+    url = robin_stocks.robinhood.urls.unifiedtransfers_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'results')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
+    """Returns all debit card transactions made on the account
+@robin_stocks.robinhood.helper.login_required
 def get_card_transactions(cardType=None, info=None):
     """Returns all debit card transactions made on the account
 
@@ -433,18 +433,15 @@ def get_card_transactions(cardType=None, info=None):
 
     """
     payload = None
-    if type:
-        payload = { 'type': type }
+    if cardType:
+        payload = { 'type': cardType }
 
-    url = cardtransactions_url()
-    data = request_get(url, 'pagination', payload)
-    return(filter_data(data, info))
-
-@login_required
-def get_stock_loan_payments(info=None):
+    url = robin_stocks.robinhood.urls.cardtransactions_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination', payload)
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns a list of loan payments.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_stock_loan_payments(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each payment. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -453,12 +450,12 @@ def get_stock_loan_payments(info=None):
     url = stockloan_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-@login_required
-def get_interest_payments(info=None):
+    url = robin_stocks.robinhood.urls.stockloan_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns a list of interest payments.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_interest_payments(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each interest payment. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -467,12 +464,12 @@ def get_interest_payments(info=None):
     url = interest_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-@login_required
-def get_margin_interest(info=None):
+    url = robin_stocks.robinhood.urls.interest_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
     """Returns a list of margin interest.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_margin_interest(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each interest. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -481,13 +478,13 @@ def get_margin_interest(info=None):
     url = margininterest_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.margininterest_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_subscription_fees(info=None):
     """Returns a list of subscription fees.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_subscription_fees(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each fee. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -496,13 +493,13 @@ def get_subscription_fees(info=None):
     url = subscription_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.subscription_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_referrals(info=None):
     """Returns a list of referrals.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_referrals(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each referral. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -511,13 +508,13 @@ def get_referrals(info=None):
     url = referral_url()
     data = request_get(url, 'pagination')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.referral_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_day_trades(info=None):
     """Returns recent day trades.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_day_trades(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each day trade. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -526,14 +523,14 @@ def get_day_trades(info=None):
     account = load_account_profile(info='account_number')
     url = daytrades_url(account)
     data = request_get(url, 'regular')
-    return(filter_data(data, info))
-
-
-@login_required
+    account = robin_stocks.robinhood.profiles.load_account_profile(info='account_number')
+    url = robin_stocks.robinhood.urls.daytrades_url(account)
+    data = robin_stocks.robinhood.helper.request_get(url, 'regular')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_documents(info=None):
     """Returns a list of documents that have been released by Robinhood to the account.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_documents(info=None):
     :type info: Optional[str]
     :returns: Returns a list of dictionaries of key/value pairs for each document. If info parameter is provided, \
     a list of strings is returned where the strings are the value of the key that matches info.
@@ -542,14 +539,14 @@ def get_documents(info=None):
     url = documents_url()
     data = request_get(url, 'pagination')
 
-    return(filter_data(data, info))
+    url = robin_stocks.robinhood.urls.documents_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'pagination')
 
-
-@login_required
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def download_document(url, name=None, dirpath=None):
     """Downloads a document and saves as it as a PDF. If no name is given, document is saved as
-    the name that Robinhood has for the document. If no directory is given, document is saved in the root directory of code.
-
+@robin_stocks.robinhood.helper.login_required
+def download_document(url, name=None, dirpath=None):
     :param url: The url of the document. Can be found by using get_documents(info='download_url').
     :type url: str
     :param name: The name to save the document as.
@@ -562,6 +559,9 @@ def download_document(url, name=None, dirpath=None):
     data = request_document(url)
 
     print('Writing PDF...', file=get_output())
+    data = robin_stocks.robinhood.helper.request_document(url)
+
+    print('Writing PDF...')
     if not name:
         name = url[36:].split('/', 1)[0]
 
@@ -577,13 +577,10 @@ def download_document(url, name=None, dirpath=None):
     print('Done - Wrote file {}.pdf to {}'.format(name, os.path.abspath(filename)))
 
     return(data)
-
-
-@login_required
 def download_all_documents(doctype=None, dirpath=None):
     """Downloads all the documents associated with an account and saves them as a PDF.
-    If no name is given, document is saved as a combination of the data of creation, type, and id.
-    If no directory is given, document is saved in the root directory of code.
+@robin_stocks.robinhood.helper.login_required
+def download_all_documents(doctype=None, dirpath=None):
 
     :param doctype: The type of document to download, such as account_statement.
     :type doctype: Optional[str]
@@ -606,16 +603,16 @@ def download_all_documents(doctype=None, dirpath=None):
             data = request_document(item['download_url'])
             if data:
                 name = item['created_at'][0:10] + '-' + \
+            data = robin_stocks.robinhood.helper.request_document(item['download_url'])
+            if data:
+                name = item['created_at'][0:10] + '-' + \
                     item['type'] + '-' + item['id']
                 filename = directory + name + '.pdf'
                 os.makedirs(os.path.dirname(filename), exist_ok=True)
                 open(filename, 'wb').write(data.content)
                 downloaded_files = True
                 counter += 1
-                print('Writing PDF {}...'.format(counter), file=get_output())
-        else:
-            if item['type'] == doctype:
-                data = request_document(item['download_url'])
+                print('Writing PDF {}...'.format(counter))
                 if data:
                     name = item['created_at'][0:10] + '-' + \
                         item['type'] + '-' + item['id']
@@ -629,21 +626,21 @@ def download_all_documents(doctype=None, dirpath=None):
     if downloaded_files == False:
         print('WARNING: Could not find files of that doctype to download', file=get_output())
     else:
+    if downloaded_files == False:
+        print('WARNING: Could not find files of that doctype to download')
+    else:
         if counter == 1:
             print('Done - wrote {} file to {}'.format(counter,
-                                                      os.path.abspath(directory)), file=get_output())
+                                                      os.path.abspath(directory)))
         else:
             print('Done - wrote {} files to {}'.format(counter,
-                                                       os.path.abspath(directory)), file=get_output())
+                                                       os.path.abspath(directory)))
 
     return(documents)
-
-
-@login_required
 def get_all_watchlists(info=None):
     """Returns a list of all watchlists that have been created. Everyone has a 'My First List' watchlist.
-
-    :param info: Will filter the results to get a specific value.
+@robin_stocks.robinhood.helper.login_required
+def get_all_watchlists(info=None):
     :type info: Optional[str]
     :returns: Returns a list of the watchlists. Keywords are 'url', 'user', and 'name'.
 
@@ -651,13 +648,13 @@ def get_all_watchlists(info=None):
     url = watchlists_url()
     data = request_get(url, 'result')
     return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.watchlists_url()
+    data = robin_stocks.robinhood.helper.request_get(url, 'result')
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def get_watchlist_by_name(name="My First List", info=None):
     """Returns a list of information related to the stocks in a single watchlist.
-
-    :param name: The name of the watchlist to get data from.
+@robin_stocks.robinhood.helper.login_required
+def get_watchlist_by_name(name="My First List", info=None):
     :type name: Optional[str]
     :param info: Will filter the results to get a specific value.
     :type info: Optional[str]
@@ -669,19 +666,19 @@ def get_watchlist_by_name(name="My First List", info=None):
     all_watchlists = get_all_watchlists()
     watchlist_id = ''
     for wl in all_watchlists['results']:
+    all_watchlists = get_all_watchlists()
+    watchlist_id = ''
+    for wl in all_watchlists['results']:
         if wl['display_name'] == name:
             watchlist_id = wl['id']
 
-    url = watchlists_url(name)
-    data = request_get(url,'list_id',{'list_id':watchlist_id})
-    return(filter_data(data, info))
-
-
-@login_required
+    url = robin_stocks.robinhood.urls.watchlists_url(name)
+    data = robin_stocks.robinhood.helper.request_get(url,'list_id',{'list_id':watchlist_id})
+    return(robin_stocks.robinhood.helper.filter_data(data, info))
 def post_symbols_to_watchlist(inputSymbols, name="My First List"):
     """Posts multiple stock tickers to a watchlist.
-
-    :param inputSymbols: May be a single stock ticker or a list of stock tickers.
+@robin_stocks.robinhood.helper.login_required
+def post_symbols_to_watchlist(inputSymbols, name="My First List"):
     :type inputSymbols: str or list
     :param name: The name of the watchlist to post data to.
     :type name: Optional[str]
@@ -690,6 +687,9 @@ def post_symbols_to_watchlist(inputSymbols, name="My First List"):
     """
     symbols = inputs_to_set(inputSymbols)
     ids = get_instruments_by_symbols(symbols, info='id')
+    data = []
+    symbols = robin_stocks.robinhood.helper.inputs_to_set(inputSymbols)
+    ids = robin_stocks.robinhood.stocks.get_instruments_by_symbols(symbols, info='id')
     data = []
     #Get id of requested watchlist
     all_watchlists = get_all_watchlists()
@@ -706,17 +706,14 @@ def post_symbols_to_watchlist(inputSymbols, name="My First List"):
                 "operation" : "create"
             }]
         }
-        url = watchlists_url(name, True)
-        data.append(request_post(url, payload, json=True))
+        url = robin_stocks.robinhood.urls.watchlists_url(name, True)
+        data.append(robin_stocks.robinhood.helper.request_post(url, payload, json=True))
 
     return(data)
-
-
-@login_required
 def delete_symbols_from_watchlist(inputSymbols, name="My First List"):
     """Deletes multiple stock tickers from a watchlist.
-
-    :param inputSymbols: May be a single stock ticker or a list of stock tickers.
+@robin_stocks.robinhood.helper.login_required
+def delete_symbols_from_watchlist(inputSymbols, name="My First List"):
     :type inputSymbols: str or list
     :param name: The name of the watchlist to delete data from.
     :type name: Optional[str]
@@ -725,6 +722,9 @@ def delete_symbols_from_watchlist(inputSymbols, name="My First List"):
     """
     symbols = inputs_to_set(inputSymbols)
     ids = get_instruments_by_symbols(symbols, info='id')
+    data = []
+    symbols = robin_stocks.robinhood.helper.inputs_to_set(inputSymbols)
+    ids = robin_stocks.robinhood.stocks.get_instruments_by_symbols(symbols, info='id')
     data = []
 
     #Get id of requested watchlist
@@ -742,17 +742,14 @@ def delete_symbols_from_watchlist(inputSymbols, name="My First List"):
                 "operation" : "delete"
             }]
         }
-        url = watchlists_url(name, True)
-        data.append(request_post(url, payload, json=True))
+        url = robin_stocks.robinhood.urls.watchlists_url(name, True)
+        data.append(robin_stocks.robinhood.helper.request_post(url, payload, json=True))
 
     return(data)
-
-
-@login_required
 def build_holdings(with_dividends=False):
     """Builds a dictionary of important information regarding the stocks and positions owned by the user.
-
-    :param with_dividends: True if you want to include divident information.
+@robin_stocks.robinhood.helper.login_required
+def build_holdings(with_dividends=False):
     :type with_dividends: bool
     :returns: Returns a dictionary where the keys are the stock tickers and the value is another dictionary \
     that has the stock price, quantity held, equity, percent change, equity change, type, name, id, pe ratio, \
@@ -762,6 +759,9 @@ def build_holdings(with_dividends=False):
     positions_data = get_open_stock_positions()
     portfolios_data = load_portfolio_profile()
     accounts_data = load_account_profile()
+    positions_data = get_open_stock_positions()
+    portfolios_data = robin_stocks.robinhood.profiles.load_portfolio_profile()
+    accounts_data = robin_stocks.robinhood.profiles.load_account_profile()
 
     # user wants dividend information in their holdings
     if with_dividends is True:
@@ -786,11 +786,11 @@ def build_holdings(with_dividends=False):
             continue
 
         try:
-            instrument_data = get_instrument_by_url(item['instrument'])
+            instrument_data = robin_stocks.robinhood.stocks.get_instrument_by_url(item['instrument'])
             symbol = instrument_data['symbol']
-            fundamental_data = get_fundamentals(symbol)[0]
+            fundamental_data = robin_stocks.robinhood.stocks.get_fundamentals(symbol)[0]
 
-            price = get_latest_price(instrument_data['symbol'])[0]
+            price = robin_stocks.robinhood.stocks.get_latest_price(instrument_data['symbol'])[0]
             quantity = item['quantity']
             equity = float(item['quantity']) * float(price)
             equity_change = (float(quantity) * float(price)) - \
@@ -820,7 +820,7 @@ def build_holdings(with_dividends=False):
                 {'equity_change': "{0:2f}".format(equity_change)})
             holdings[symbol].update({'type': instrument_data['type']})
             holdings[symbol].update(
-                {'name': get_name_by_symbol(symbol)})
+                {'name': robin_stocks.robinhood.stocks.get_name_by_symbol(symbol)})
             holdings[symbol].update({'id': instrument_data['id']})
             holdings[symbol].update({'pe_ratio': fundamental_data['pe_ratio']})
             holdings[symbol].update(
@@ -835,19 +835,19 @@ def build_holdings(with_dividends=False):
             pass
 
     return(holdings)
-
-
-@login_required
 def build_user_profile(account_number=None):
     """Builds a dictionary of important information regarding the user account.
-
-    :returns: Returns a dictionary that has total equity, extended hours equity, cash, and divendend total.
+@robin_stocks.robinhood.helper.login_required
+def build_user_profile(account_number=None):
 
     """
     user = {}
 
     portfolios_data = load_portfolio_profile(account_number=account_number)
     accounts_data = load_account_profile(account_number=account_number)
+
+    portfolios_data = robin_stocks.robinhood.profiles.load_portfolio_profile(account_number=account_number)
+    accounts_data = robin_stocks.robinhood.profiles.load_account_profile(account_number=account_number)
 
     if portfolios_data:
         user['equity'] = portfolios_data['equity']
