@@ -11,11 +11,13 @@ pip install -r requirements.txt
 ## Step 2: Set Up Credentials
 
 1. Copy the example environment file:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Edit `.env` and add your Robinhood credentials:
+
    ```
    ROBINHOOD_USERNAME=your_email@example.com
    ROBINHOOD_PASSWORD=your_password
@@ -40,6 +42,7 @@ python trader.py
 ```
 
 The bot will:
+
 - ✓ Show you what it would buy/sell
 - ✓ Create graphs of trading activity
 - ✗ NOT execute real trades (safe for testing)
@@ -72,7 +75,7 @@ QQQ: $385.60
   SMA: $384.15, Ratio: 1.0038
 ```
 
-### What This Means:
+### What This Means
 
 - **Signal**: What the strategy recommends (BUY/SELL/HOLD)
 - **SMA**: The moving average price
@@ -95,12 +98,15 @@ Press `Ctrl+C` to stop the bot safely.
 ## Troubleshooting
 
 ### "Missing credentials!"
+
 → Create a `.env` file with your Robinhood login
 
 ### "Market is closed"
+
 → Normal! Bot only runs 9:30 AM - 4:00 PM ET on weekdays
 
 ### "Could not create graph"
+
 → Graph module issue, but trading still works
 
 ## Tips for Success

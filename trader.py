@@ -27,8 +27,6 @@ def login(days=7):
         username=config.username,
         password=config.password,
         expiresIn=time_logged_in,
-        scope='internal',
-        by_sms=True,
         store_session=True
     )
     print("✓ Login successful!")
@@ -126,13 +124,13 @@ def execute_sell(stock, quantity, price):
     
     # UNCOMMENT THESE LINES TO ENABLE LIVE TRADING
     # WARNING: This will execute real trades!
-    # sell_order = rh.orders.order_sell_limit(
-    #     symbol=stock,
-    #     quantity=quantity,
-    #     limitPrice=sell_price,
-    #     timeInForce='gfd'
-    # )
-    # print(f"✓ Sell order placed: {sell_order}")
+    #sell_order = rh.orders.order_sell_limit(
+    #    symbol=stock,
+    #    quantity=quantity,
+    #    limitPrice=sell_price,
+    #    timeInForce='gfd'
+    #)
+    #print(f"✓ Sell order placed: {sell_order}")
 
 
 def execute_buy(stock, quantity, price):
@@ -150,13 +148,13 @@ def execute_buy(stock, quantity, price):
     
     # UNCOMMENT THESE LINES TO ENABLE LIVE TRADING
     # WARNING: This will execute real trades!
-    # buy_order = rh.orders.order_buy_limit(
-    #     symbol=stock,
-    #     quantity=quantity,
-    #     limitPrice=buy_price,
-    #     timeInForce='gfd'
-    # )
-    # print(f"✓ Buy order placed: {buy_order}")
+    #buy_order = rh.orders.order_buy_limit(
+    #    symbol=stock,
+    #    quantity=quantity,
+    #    limitPrice=buy_price,
+    #    timeInForce='gfd'
+    #)
+    #print(f"✓ Buy order placed: {buy_order}")
 
 
 def save_dataframe(df_trades, df_prices, timestamp):

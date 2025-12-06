@@ -35,7 +35,7 @@ STOCKS = [
     "QQQ",   # Invesco QQQ Trust (Nasdaq-100 ETF)
     "SPY",   # SPDR S&P 500 ETF Trust
     "VOO",   # Vanguard S&P 500 ETF
-    "TSLA",  # Tesla, Inc.
+    "V",     # Visa Inc.
     "QUBT",  # Quantum Computing Inc.
 ]
 
@@ -55,10 +55,10 @@ SMA_WINDOW = 12
 
 # Maximum percentage of cash to invest in a single stock
 # 0.1 = 10% of available cash per stock
-MAX_CASH_PER_STOCK = 0.1
+MAX_CASH_PER_STOCK = 0.15
 
 # Minimum shares to buy (prevents buying too few shares)
-MIN_SHARES_TO_BUY = 5
+MIN_SHARES_TO_BUY = 3
 
 
 # ============================================================================

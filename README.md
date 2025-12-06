@@ -7,6 +7,7 @@ A simple automated trading bot for Robinhood that uses moving average strategies
 **THE STOCK MARKET IS INHERENTLY RISKY. USE AT YOUR OWN RISK.**
 
 This bot is for educational purposes. What works for one person may not work for another. Always:
+
 - Start with paper trading or very small amounts
 - Understand the strategy before using it
 - Monitor your bot regularly
@@ -41,6 +42,7 @@ ROBINHOOD_PASSWORD=your_password
 ### 3. Configure Trading Settings
 
 Edit `config.py` to customize:
+
 - Stock symbols to trade
 - Trading buffer (default 0.2%)
 - Maximum investment per stock
@@ -54,6 +56,7 @@ python trader.py
 ```
 
 The bot will:
+
 1. Log into your Robinhood account
 2. Monitor the stocks you configured
 3. Make buy/sell decisions based on the SMA strategy
@@ -85,6 +88,7 @@ def get_sma(self, stock, df_prices, window=12):
 ```
 
 **Common adjustments:**
+
 - **More aggressive**: Lower buffer (e.g., 0.001 = 0.1%)
 - **Less aggressive**: Higher buffer (e.g., 0.005 = 0.5%)
 - **Longer trend**: Increase window (e.g., 24 = 2 hours)
@@ -140,6 +144,7 @@ def buy(stock, allowable_holdings, price):
 ## Monitoring
 
 The bot creates a graph saved as `YYYY-MM-DD.png` showing:
+
 - **Solid lines**: Stocks you're holding or considering buying
 - **Faded lines**: Stocks you've sold or aren't trading
 - **Green vertical lines**: Buy signals
@@ -148,15 +153,18 @@ The bot creates a graph saved as `YYYY-MM-DD.png` showing:
 ## Troubleshooting
 
 ### "The Market is closed"
+
 - Bot only runs 9:30 AM - 4:00 PM EST on weekdays
 - This is normal outside trading hours
 
 ### Login Issues
+
 - Check your `.env` file credentials
 - You may need 2FA (the bot will prompt you)
 - Ensure your Robinhood account is in good standing
 
 ### "404 Error" or API Issues
+
 - Robinhood's API can be unstable
 - Try again in a few minutes
 - Check Robinhood's service status
