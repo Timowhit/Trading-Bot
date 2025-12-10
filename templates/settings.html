@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Trading Bot</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1419;
+            color: #e7e9ea;
+            min-height: 100vh;
+        }
+        
+        .nav {
+            background: #16202a;
+            border-bottom: 1px solid #2f3336;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-brand { font-size: 20px; font-weight: 700; padding: 16px 8px; margin-right: 16px; }
+        
+        .nav-link {
+            color: #71767b;
+            text-decoration: none;
+            padding: 16px 16px;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav-link:hover { color: #e7e9ea; }
+        .nav-link.active { color: #1d9bf0; border-bottom-color: #1d9bf0; }
+        
+        .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
+        
+        h1 { font-size: 24px; margin-bottom: 24px; }
+        
+        .settings-section {
+            background: #16202a;
+            border-radius: 12px;
+            border: 1px solid #2f3336;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        .settings-section h2 {
+            padding: 16px 20px;
+            font-size: 16px;
+            border-bottom: 1px solid #2f3336;
+            background: #1a2733;
+        }
+        
+        .setting-row {
+            padding: 16px 20px;
+            border-bottom: 1px solid #2f3336;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .setting-row:last-child { border-bottom: none; }
+        
+        .setting-label {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .setting-label h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .setting-label p { font-size: 12px; color: #71767b; }
+        
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            background: #0f1419;
+            border: 1px solid #2f3336;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e7e9ea;
+            font-size: 14px;
+            width: 200px;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #1d9bf0;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+        }
+        
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #2f3336;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        
+        .toggle input:checked + .toggle-slider { background: #1d9bf0; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(22px); }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary { background: #1d9bf0; color: white; }
+        .btn-primary:hover { background: #1a8cd8; }
+        .btn-primary:disabled { background: #2f3336; cursor: not-allowed; }
+        
+        .btn-secondary { background: transparent; color: #1d9bf0; border: 1px solid #2f3336; }
+        .btn-secondary:hover { background: rgba(29, 155, 240, 0.1); }
+        
+        .btn-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        
+        .stock-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        
+        .stock-tag {
+            background: rgba(29, 155, 240, 0.2);
+            color: #1d9bf0;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stock-tag button {
+            background: none;
+            border: none;
+            color: #1d9bf0;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+        }
+        
+        .add-stock {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .add-stock input { flex: 1; width: auto; }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #00ba7c;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+        }
+        
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        @media (max-width: 600px) {
+            .setting-row { flex-direction: column; align-items: flex-start; }
+            input[type="text"], input[type="number"] { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <span class="nav-brand">📈 Trading Bot</span>
+        <a href="/" class="nav-link">Dashboard</a>
+        <a href="/settings" class="nav-link active">Settings</a>
+    </nav>
+    
+    <div class="container">
+        <h1>Settings</h1>
+        
+        <div class="settings-section">
+            <h2>📊 Stocks to Trade</h2>
+            <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+                <div class="setting-label">
+                    <h3>Managed Stocks</h3>
+                    <p>The bot will monitor and trade these symbols</p>
+                </div>
+                <div id="stock-tags" class="stock-tags"></div>
+                <div class="add-stock">
+                    <input type="text" id="new-stock" placeholder="Enter symbol (e.g., AAPL)" onkeypress="if(event.key==='Enter')addStock()">
+                    <button class="btn btn-secondary" onclick="addStock()">Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h2>⚙️ Trading Parameters</h2>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Trading Buffer</h3>
+                    <p>Price deviation from SMA to trigger trades (0.002 = 0.2%)</p>
+                </div>
+                <input type="number" id="trading-buffer" step="0.001" min="0.001" max="0.1">
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>SMA Window</h3>
+                    <p>Number of periods for moving average (12 = 1 hour)</p>
+                </div>
+                <input type="number" id="sma-window" min="3" max="100">
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Max Cash Per Stock</h3>
+                    <p>Maximum % of cash to invest per stock (0.15 = 15%)</p>
+                </div>
+                <input type="number" id="max-cash" step="0.01" min="0.01" max="1">
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Min Shares to Buy</h3>
+                    <p>Minimum shares required to place a buy order</p>
+                </div>
+                <input type="number" id="min-shares" min="1" max="100">
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Check Interval</h3>
+                    <p>Seconds between price checks</p>
+                </div>
+                <input type="number" id="check-interval" min="10" max="300">
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h2>🖥️ Dashboard Preferences</h2>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Auto Refresh</h3>
+                    <p>Automatically refresh data periodically</p>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="auto-refresh">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Refresh Interval</h3>
+                    <p>Seconds between auto-refreshes</p>
+                </div>
+                <input type="number" id="refresh-interval" min="10" max="300">
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+            <button class="btn btn-primary" id="save-btn" onclick="saveSettings()">Save Changes</button>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">Settings saved!</div>
+    
+    <script>
+        let settings = {
+            stocks: [],
+            trading_buffer: 0.002,
+            sma_window: 12,
+            max_cash_per_stock: 0.15,
+            min_shares_to_buy: 3,
+            check_interval: 30,
+            auto_refresh: true,
+            refresh_interval: 30
+        };
+        
+        function renderStockTags() {
+            const container = document.getElementById('stock-tags');
+            container.innerHTML = settings.stocks.map(stock => `
+                <span class="stock-tag">
+                    ${stock}
+                    <button onclick="removeStock('${stock}')">&times;</button>
+                </span>
+            `).join('');
+        }
+        
+        function addStock() {
+            const input = document.getElementById('new-stock');
+            const symbol = input.value.trim().toUpperCase();
+            
+            if (symbol && !settings.stocks.includes(symbol)) {
+                settings.stocks.push(symbol);
+                renderStockTags();
+                input.value = '';
+            }
+        }
+        
+        function removeStock(symbol) {
+            settings.stocks = settings.stocks.filter(s => s !== symbol);
+            renderStockTags();
+        }
+        
+        function loadSettingsToUI() {
+            renderStockTags();
+            document.getElementById('trading-buffer').value = settings.trading_buffer;
+            document.getElementById('sma-window').value = settings.sma_window;
+            document.getElementById('max-cash').value = settings.max_cash_per_stock;
+            document.getElementById('min-shares').value = settings.min_shares_to_buy;
+            document.getElementById('check-interval').value = settings.check_interval;
+            document.getElementById('auto-refresh').checked = settings.auto_refresh;
+            document.getElementById('refresh-interval').value = settings.refresh_interval;
+        }
+        
+        function getSettingsFromUI() {
+            return {
+                stocks: settings.stocks,
+                trading_buffer: parseFloat(document.getElementById('trading-buffer').value),
+                sma_window: parseInt(document.getElementById('sma-window').value),
+                max_cash_per_stock: parseFloat(document.getElementById('max-cash').value),
+                min_shares_to_buy: parseInt(document.getElementById('min-shares').value),
+                check_interval: parseInt(document.getElementById('check-interval').value),
+                auto_refresh: document.getElementById('auto-refresh').checked,
+                refresh_interval: parseInt(document.getElementById('refresh-interval').value)
+            };
+        }
+        
+        async function fetchSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                settings = { ...settings, ...data };
+                loadSettingsToUI();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+        
+        async function saveSettings() {
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            
+            try {
+                settings = getSettingsFromUI();
+                
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Settings saved!');
+                } else {
+                    alert('Failed to save settings');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        }
+        
+        function resetSettings() {
+            if (confirm('Reset all settings to defaults?')) {
+                settings = {
+                    stocks: ['QQQ', 'SPY', 'VOO'],
+                    trading_buffer: 0.002,
+                    sma_window: 12,
+                    max_cash_per_stock: 0.15,
+                    min_shares_to_buy: 3,
+                    check_interval: 30,
+                    auto_refresh: true,
+                    refresh_interval: 30
+                };
+                loadSettingsToUI();
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        fetchSettings();
+    </script>
+</body>
+</html>
