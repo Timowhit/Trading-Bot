@@ -2,12 +2,15 @@
   "stocks": [
     "QQQ",
     "SPY",
-    "TQQQ"
+    "COIN",
+    "URA",
+    "NVDA",
+    "HOOD"
   ],
   "trading_buffer": 0.03,
   "sma_window": 12,
-  "max_cash_per_stock": 0.15,
-  "min_shares_to_buy": 3,
+  "max_cash_per_stock": 0.35,
+  "min_shares_to_buy": 1,
   "check_interval": 30,
   "auto_refresh": true,
   "refresh_interval": 30

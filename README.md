@@ -96,7 +96,7 @@ def get_sma(self, stock, df_prices, window=12):
 
 ## File Structure
 
-```
+```python
 ├── trader.py           # Main trading bot (runs the strategy)
 ├── trade_strategy.py   # Trading strategy logic (SMA calculations)
 ├── config.py          # Configuration (stocks to trade, settings)

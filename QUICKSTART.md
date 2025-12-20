@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 2. Edit `.env` and add your Robinhood credentials:
 
-   ```
+   ```env
    ROBINHOOD_USERNAME=your_email@example.com
    ROBINHOOD_PASSWORD=your_password
    ```
@@ -60,7 +60,7 @@ The bot will:
 
 When running, you'll see:
 
-```
+```txt
 --- Iteration 1 at 10:30:45 ---
 Holdings: {'SPY': 0, 'QQQ': 5, 'AAPL': 0}
 
