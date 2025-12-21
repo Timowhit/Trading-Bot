@@ -33,17 +33,19 @@ REQUIRED EXTERNAL FILES:
    - Created automatically when you save settings from the web interface
    - Can be manually edited if needed
 
-OPTIONAL EXTERNAL FILES:
-------------------------
-3. config.py (optional)
-   - Location: Same directory as this script
-   - Purpose: Alternative way to set default configuration
-   - If present, settings will be loaded from here as defaults
-   - Expected variables: STOCKS, TRADING_BUFFER, SMA_WINDOW, etc.
-
-4. trade_strategy.py (NOT NEEDED)
-   - A trading strategy class is built into this file
-   - No external strategy file required
+BUILT-IN CONFIGURATION (no external file needed):
+-------------------------------------------------
+3. Config class (built into this file)
+   - Located in the DEFAULT CONFIGURATION section below
+   - Contains default stocks, trading parameters, market hours, etc.
+   - Edit the Config class directly to change defaults
+   - Or use the web Settings page to override without editing code
+   
+   Default stocks: QQQ, SPY, VOO, V, HOOD
+   Default trading buffer: 2% (0.02)
+   Default SMA window: 12 periods
+   Default max cash per stock: 25%
+   Default check interval: 30 seconds
 
 REQUIRED PYTHON PACKAGES (install via pip):
 -------------------------------------------
@@ -81,6 +83,92 @@ load_dotenv()
 # Initialize Flask web application
 # Flask handles all the web routes and serves the dashboard
 app = Flask(__name__)
+
+
+# ============================================================================
+# DEFAULT CONFIGURATION - Built-in settings (replaces external config.py)
+# ============================================================================
+# These defaults are used if no bot_settings.json exists
+# Users can override these via the Settings page in the web interface
+
+class Config:
+    """
+    Default configuration for the trading bot.
+    
+    This replaces the need for an external config.py file.
+    All settings can be overridden via the web interface's Settings page,
+    which saves to bot_settings.json.
+    """
+    
+    # ========================================================================
+    # STOCKS TO TRADE
+    # ========================================================================
+    # Add or remove stock tickers you want to trade
+    # These are just examples - customize via Settings page or edit here
+    STOCKS = [
+        "QQQ",   # Invesco QQQ Trust (Nasdaq-100 ETF)
+        "SPY",   # SPDR S&P 500 ETF Trust
+        "VOO",   # Vanguard S&P 500 ETF
+        "V",     # Visa Inc.
+        "HOOD",  # Robinhood Markets Inc.
+    ]
+    
+    # ========================================================================
+    # TRADING PARAMETERS
+    # ========================================================================
+    
+    # Buffer for buy/sell decisions (0.02 = 2%)
+    # Lower = more sensitive (more trades)
+    # Higher = less sensitive (fewer trades)
+    # Example: 0.02 means buy when price is 2% below SMA, sell when 2% above
+    TRADING_BUFFER = 0.02
+    
+    # SMA window size (number of price points to average)
+    # Default: 12 periods
+    # With 30-second intervals: 12 * 30s = 6 minutes of price history
+    # With 5-minute intervals: 12 * 5min = 1 hour of price history
+    SMA_WINDOW = 12
+    
+    # Maximum percentage of cash to invest in a single stock
+    # 0.25 = 25% of available cash per stock
+    # Lower = more diversified, Higher = more concentrated
+    MAX_CASH_PER_STOCK = 0.25
+    
+    # Minimum shares to buy (prevents buying too few shares)
+    # Skip buy signal if we can't afford at least this many shares
+    MIN_SHARES_TO_BUY = 1
+    
+    # ========================================================================
+    # MARKET HOURS (Eastern Time)
+    # ========================================================================
+    # Regular market hours: 9:30 AM - 4:00 PM ET
+    # Bot will only trade during these hours
+    MARKET_OPEN_HOUR = 9
+    MARKET_OPEN_MINUTE = 30
+    MARKET_CLOSE_HOUR = 15      # 3 PM (bot stops before 4 PM close)
+    MARKET_CLOSE_MINUTE = 59    # 3:59 PM
+    
+    # How often to check prices (in seconds)
+    # 30 seconds is a good balance between responsiveness and API limits
+    # Lower = more responsive but more API calls
+    # Higher = fewer API calls but slower reaction
+    CHECK_INTERVAL = 30
+    
+    # ========================================================================
+    # DISPLAY SETTINGS
+    # ========================================================================
+    
+    # Save trading graphs (True/False)
+    # If True, creates price/trade visualizations
+    SAVE_GRAPHS = True
+    
+    # Show detailed logging in console (True/False)
+    # If True, prints extra debug information
+    VERBOSE_LOGGING = True
+
+
+# Create a global config instance for easy access
+config = Config()
 
 
 # ============================================================================
@@ -129,53 +217,40 @@ def load_settings():
     Load bot settings from file or use defaults.
     
     Settings priority:
-    1. bot_settings.json (if exists) - User's saved settings
-    2. config.py (if exists) - Developer defaults
-    3. Hard-coded defaults - Fallback values
+    1. bot_settings.json (if exists) - User's saved settings from web interface
+    2. Built-in Config class defaults - Hard-coded in this file
     
     Returns:
         dict: Settings dictionary with all configuration values
     """
-    # Default settings if nothing else is available
+    # Default settings from the built-in Config class
     default_settings = {
-        'stocks': [],                    # List of stock symbols to monitor
-        'trading_buffer': 0.002,         # 0.2% deviation from SMA triggers trade
-        'sma_window': 12,                # Number of data points for SMA calculation
-        'max_cash_per_stock': 0.15,      # Max 15% of cash per single trade
-        'min_shares_to_buy': 3,          # Don't buy if can't afford at least 3 shares
-        'check_interval': 30,            # Seconds between price checks
-        'auto_refresh': True,            # Auto-refresh dashboard
-        'refresh_interval': 30,          # Dashboard refresh interval (seconds)
-        'market_open_hour': 9,           # Market opens at 9:30 AM
-        'market_open_minute': 30,
-        'market_close_hour': 16,         # Market closes at 4:00 PM
-        'market_close_minute': 0
+        'stocks': Config.STOCKS.copy(),                    # List of stock symbols to monitor
+        'trading_buffer': Config.TRADING_BUFFER,           # Deviation from SMA to trigger trade
+        'sma_window': Config.SMA_WINDOW,                   # Number of data points for SMA
+        'max_cash_per_stock': Config.MAX_CASH_PER_STOCK,   # Max % of cash per single trade
+        'min_shares_to_buy': Config.MIN_SHARES_TO_BUY,     # Min shares to make a buy worthwhile
+        'check_interval': Config.CHECK_INTERVAL,           # Seconds between price checks
+        'auto_refresh': True,                              # Auto-refresh dashboard
+        'refresh_interval': 30,                            # Dashboard refresh interval (seconds)
+        'market_open_hour': Config.MARKET_OPEN_HOUR,       # Market opens at 9:30 AM
+        'market_open_minute': Config.MARKET_OPEN_MINUTE,
+        'market_close_hour': Config.MARKET_CLOSE_HOUR,     # Market closes at 4:00 PM
+        'market_close_minute': Config.MARKET_CLOSE_MINUTE,
+        'save_graphs': Config.SAVE_GRAPHS,                 # Save trading graphs
+        'verbose_logging': Config.VERBOSE_LOGGING          # Show detailed logging
     }
     
-    # Try to load saved settings from JSON file
+    # Try to load saved settings from JSON file (overrides defaults)
     try:
         with open(SETTINGS_FILE, 'r') as f:
             saved = json.load(f)
             # Merge saved settings with defaults (saved values override defaults)
             default_settings.update(saved)
     except FileNotFoundError:
-        # No saved settings file - try to load from config.py as fallback
-        try:
-            import config
-            # Copy values from config.py if they exist
-            default_settings['stocks'] = config.STOCKS.copy()
-            default_settings['trading_buffer'] = getattr(config, 'TRADING_BUFFER', 0.002)
-            default_settings['sma_window'] = getattr(config, 'SMA_WINDOW', 12)
-            default_settings['max_cash_per_stock'] = getattr(config, 'MAX_CASH_PER_STOCK', 0.15)
-            default_settings['min_shares_to_buy'] = getattr(config, 'MIN_SHARES_TO_BUY', 3)
-            default_settings['check_interval'] = getattr(config, 'CHECK_INTERVAL', 30)
-            default_settings['market_open_hour'] = getattr(config, 'MARKET_OPEN_HOUR', 9)
-            default_settings['market_open_minute'] = getattr(config, 'MARKET_OPEN_MINUTE', 30)
-            default_settings['market_close_hour'] = getattr(config, 'MARKET_CLOSE_HOUR', 16)
-            default_settings['market_close_minute'] = getattr(config, 'MARKET_CLOSE_MINUTE', 0)
-        except ImportError:
-            # No config.py either - just use the hard-coded defaults
-            pass
+        # No saved settings file - use the built-in defaults
+        # Settings will be saved when user clicks "Save" on Settings page
+        pass
     
     return default_settings
 
@@ -204,12 +279,8 @@ def get_configured_stocks():
     settings = load_settings()
     if settings['stocks']:
         return settings['stocks']
-    # Fallback to config.py if no stocks configured
-    try:
-        import config
-        return config.STOCKS
-    except ImportError:
-        return []
+    # Fallback to built-in Config defaults if no stocks configured
+    return Config.STOCKS.copy()
 
 
 # ============================================================================
@@ -450,8 +521,8 @@ def run_trading_bot():
         # ----------------------------------------------------------------
         settings = load_settings()
         
-        # Get stocks to monitor (use defaults if none configured)
-        stocks = settings['stocks'] if settings['stocks'] else ['AAPL', 'MSFT', 'GOOGL']
+        # Get stocks to monitor (use Config defaults if none configured)
+        stocks = settings['stocks'] if settings['stocks'] else Config.STOCKS.copy()
         
         # Trading parameters
         trading_buffer = settings.get('trading_buffer', 0.002)
