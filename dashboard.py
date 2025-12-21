@@ -1,10 +1,11 @@
 """
-Trading Bot Dashboard with Options and Settings
+Trading Bot Dashboard with Start/Stop Control
 """
 import os
 import threading
 import datetime as dt
 import json
+import time
 from flask import Flask, render_template, jsonify, request
 import robin_stocks.robinhood as rh
 from dotenv import load_dotenv
@@ -31,6 +32,11 @@ bot_state = {
 
 state_lock = threading.Lock()
 SETTINGS_FILE = 'bot_settings.json'
+
+# Bot control
+bot_thread = None
+stop_bot_event = threading.Event()
+
 
 def load_settings():
     default_settings = {
@@ -62,9 +68,11 @@ def load_settings():
     
     return default_settings
 
+
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w') as f:
         json.dump(settings, f, indent=2)
+
 
 def get_configured_stocks():
     settings = load_settings()
@@ -111,6 +119,203 @@ def add_trade_log(stock, action, shares, price):
         bot_state['trade_log'] = bot_state['trade_log'][:50]
 
 
+# ============================================================================
+# BOT TRADING LOOP (runs in background thread)
+# ============================================================================
+
+def run_trading_bot():
+    """Main trading bot loop - runs in a background thread."""
+    import config
+    import trade_strategy
+    import pandas as pd
+    
+    print("=" * 60)
+    print("TRADING BOT STARTED")
+    print("=" * 60)
+    
+    try:
+        # Login
+        username = os.getenv('ROBINHOOD_USERNAME')
+        password = os.getenv('ROBINHOOD_PASSWORD')
+        
+        if not username or not password:
+            print("ERROR: Missing credentials")
+            with state_lock:
+                bot_state['running'] = False
+            return
+        
+        rh.authentication.login(username, password, store_session=True)
+        print("✓ Login successful!")
+        
+        # Get settings
+        settings = load_settings()
+        stocks = settings['stocks'] if settings['stocks'] else config.STOCKS
+        trading_buffer = settings.get('trading_buffer', config.TRADING_BUFFER)
+        max_cash_per_stock = settings.get('max_cash_per_stock', config.MAX_CASH_PER_STOCK)
+        min_shares_to_buy = settings.get('min_shares_to_buy', config.MIN_SHARES_TO_BUY)
+        check_interval = settings.get('check_interval', config.CHECK_INTERVAL)
+        
+        print(f"Monitoring stocks: {', '.join(stocks)}")
+        
+        # Override config with settings
+        config.TRADING_BUFFER = trading_buffer
+        config.MAX_CASH_PER_STOCK = max_cash_per_stock
+        config.MIN_SHARES_TO_BUY = min_shares_to_buy
+        
+        # Initialize strategy
+        strategy = trade_strategy.TradingStrategy(stocks)
+        
+        iteration = 0
+        
+        # Main loop - check stop_bot_event to know when to stop
+        while not stop_bot_event.is_set():
+            # Check market hours
+            time_now = dt.datetime.now().time()
+            market_open = dt.time(config.MARKET_OPEN_HOUR, config.MARKET_OPEN_MINUTE, 0)
+            market_close = dt.time(config.MARKET_CLOSE_HOUR, config.MARKET_CLOSE_MINUTE, 0)
+            
+            if not (market_open < time_now < market_close):
+                print(f"Market closed. Waiting... (opens {market_open}, closes {market_close})")
+                # Wait but check for stop signal every 10 seconds
+                for _ in range(6):  # Check every 10 seconds for 1 minute
+                    if stop_bot_event.is_set():
+                        break
+                    time.sleep(10)
+                continue
+            
+            iteration += 1
+            print(f"\n--- Iteration {iteration} at {dt.datetime.now().strftime('%H:%M:%S')} ---")
+            
+            try:
+                # Get account info
+                profile = rh.account.build_user_profile()
+                cash = float(profile.get('cash', 0))
+                equity = float(profile.get('equity', 0))
+                
+                # Get current prices
+                prices_list = rh.stocks.get_latest_price(stocks)
+                
+                # Get holdings
+                rh_holdings = rh.account.build_holdings()
+                holdings = {}
+                bought_prices = {}
+                
+                for stock in stocks:
+                    try:
+                        holdings[stock] = int(float(rh_holdings[stock]['quantity']))
+                        bought_prices[stock] = float(rh_holdings[stock]['average_buy_price'])
+                    except (KeyError, TypeError):
+                        holdings[stock] = 0
+                        bought_prices[stock] = 0
+                
+                print(f"Holdings: {holdings}")
+                
+                signals_dict = {}
+                sma_dict = {}
+                ratios_dict = {}
+                price_dict = {}
+                
+                for i, stock in enumerate(stocks):
+                    try:
+                        price = float(prices_list[i]) if prices_list[i] else 0
+                        price_dict[stock] = price
+                        print(f"\n{stock}: ${price:.2f}")
+                        
+                        # Get trading signal
+                        signal = strategy.get_trade_signal(stock, price)
+                        print(f"  Signal: {signal}")
+                        
+                        signals_dict[stock] = signal
+                        status = strategy.get_status(stock)
+                        sma_dict[stock] = status['sma']
+                        ratios_dict[stock] = status['price_sma_ratio']
+                        
+                        # Execute trades
+                        if signal == 'BUY':
+                            max_investment = cash * max_cash_per_stock
+                            shares_to_buy = int(max_investment / price) if price > 0 else 0
+                            
+                            if shares_to_buy >= min_shares_to_buy and holdings[stock] == 0:
+                                buy_price = round(price + 0.10, 2)
+                                print(f"🟢 BUY: {stock} - {shares_to_buy} shares @ ${buy_price}")
+                                
+                                add_trade_log(stock, 'BUY', shares_to_buy, buy_price)
+                                
+                                # UNCOMMENT FOR LIVE TRADING:
+                                # rh.orders.order_buy_limit(
+                                #     symbol=stock,
+                                #     quantity=shares_to_buy,
+                                #     limitPrice=buy_price,
+                                #     timeInForce='gfd'
+                                # )
+                        
+                        elif signal == 'SELL':
+                            if holdings[stock] > 0:
+                                sell_price = round(price - 0.10, 2)
+                                print(f"🔴 SELL: {stock} - {holdings[stock]} shares @ ${sell_price}")
+                                
+                                add_trade_log(stock, 'SELL', holdings[stock], sell_price)
+                                
+                                # UNCOMMENT FOR LIVE TRADING:
+                                # rh.orders.order_sell_limit(
+                                #     symbol=stock,
+                                #     quantity=holdings[stock],
+                                #     limitPrice=sell_price,
+                                #     timeInForce='gfd'
+                                # )
+                        
+                        else:
+                            if holdings[stock] > 0:
+                                print(f"  Holding {holdings[stock]} shares")
+                        
+                        print(f"  SMA: ${status['sma']:.2f}, Ratio: {status['price_sma_ratio']:.4f}")
+                    
+                    except Exception as e:
+                        print(f"Error processing {stock}: {e}")
+                        continue
+                
+                # Update dashboard state
+                update_bot_state(
+                    holdings=holdings,
+                    prices=price_dict,
+                    signals=signals_dict,
+                    sma_values=sma_dict,
+                    ratios=ratios_dict,
+                    cash=cash,
+                    equity=equity
+                )
+                
+                strategy.increment_runtime()
+            
+            except Exception as e:
+                print(f"Error in iteration: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Wait for next check, but check stop signal every second
+            print(f"\nWaiting {check_interval} seconds...")
+            for _ in range(check_interval):
+                if stop_bot_event.is_set():
+                    break
+                time.sleep(1)
+    
+    except Exception as e:
+        print(f"Bot error: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        print("\n" + "=" * 60)
+        print("TRADING BOT STOPPED")
+        print("=" * 60)
+        with state_lock:
+            bot_state['running'] = False
+
+
+# ============================================================================
+# ROUTES
+# ============================================================================
+
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
@@ -135,6 +340,42 @@ def handle_settings():
         settings = request.json
         save_settings(settings)
         return jsonify({'success': True})
+
+
+@app.route('/api/bot/start', methods=['POST'])
+def start_bot():
+    """Start the trading bot in a background thread."""
+    global bot_thread, stop_bot_event
+    
+    with state_lock:
+        if bot_state['running']:
+            return jsonify({'success': False, 'message': 'Bot is already running'})
+    
+    # Clear the stop event and start the bot
+    stop_bot_event.clear()
+    
+    with state_lock:
+        bot_state['running'] = True
+    
+    bot_thread = threading.Thread(target=run_trading_bot, daemon=True)
+    bot_thread.start()
+    
+    return jsonify({'success': True, 'message': 'Bot started'})
+
+
+@app.route('/api/bot/stop', methods=['POST'])
+def stop_bot():
+    """Stop the trading bot."""
+    global stop_bot_event
+    
+    with state_lock:
+        if not bot_state['running']:
+            return jsonify({'success': False, 'message': 'Bot is not running'})
+    
+    # Signal the bot to stop
+    stop_bot_event.set()
+    
+    return jsonify({'success': True, 'message': 'Stop signal sent'})
 
 
 @app.route('/api/refresh')
@@ -211,7 +452,6 @@ def refresh_data():
                         
                         try:
                             md = rh.options.get_option_market_data_by_id(option_id)
-                            # market_data comes back as a LIST, not a dict!
                             if md and isinstance(md, list) and len(md) > 0:
                                 market_data = md[0]
                             elif md and isinstance(md, dict):
@@ -219,10 +459,8 @@ def refresh_data():
                         except Exception as e:
                             print(f"Error getting market data: {e}")
                     
-                    # average_price is in cents
                     avg_price = float(opt.get('average_price', 0)) / 100
                     
-                    # Get current price from market data
                     current_price = 0
                     if market_data:
                         current_price = float(
@@ -231,18 +469,12 @@ def refresh_data():
                             market_data.get('last_trade_price') or 0
                         )
                     
-                    # Calculate P/L percentage
                     pct_change = 0
                     if avg_price > 0 and current_price > 0:
                         pct_change = ((current_price - avg_price) / avg_price) * 100
                     
-                    # Get expiration
                     expiration = opt.get('expiration_date') or option_data.get('expiration_date', 'N/A')
-                    
-                    # Get option type (call/put)
                     option_type = (option_data.get('type', '') or 'N/A').upper()
-                    
-                    # Get strike price
                     strike = float(option_data.get('strike_price', 0) or 0)
                     
                     options_data.append({

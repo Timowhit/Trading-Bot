@@ -36,7 +36,7 @@ STOCKS = [
     "SPY",   # SPDR S&P 500 ETF Trust
     "VOO",   # Vanguard S&P 500 ETF
     "V",     # Visa Inc.
-    "QUBT",  # Quantum Computing Inc.
+    "HOOD",  # Quantum Computing Inc.
 ]
 
 
@@ -47,7 +47,7 @@ STOCKS = [
 # Buffer for buy/sell decisions (0.002 = 0.2%)
 # Lower = more sensitive (more trades)
 # Higher = less sensitive (fewer trades)
-TRADING_BUFFER = 0.002
+TRADING_BUFFER = 0.02
 
 # SMA window size (number of periods to average)
 # Default: 12 periods = 1 hour (with 5-minute intervals)
@@ -55,10 +55,10 @@ SMA_WINDOW = 12
 
 # Maximum percentage of cash to invest in a single stock
 # 0.1 = 10% of available cash per stock
-MAX_CASH_PER_STOCK = 0.15
+MAX_CASH_PER_STOCK = 0.25
 
 # Minimum shares to buy (prevents buying too few shares)
-MIN_SHARES_TO_BUY = 3
+MIN_SHARES_TO_BUY = 1
 
 
 # ============================================================================

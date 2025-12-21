@@ -174,7 +174,7 @@ class TestTradingStrategy:
 
 
 # ============================================================================
-# Tests for trader.py
+# Tests for trader_with_dashboard.py
 # ============================================================================
 class TestTrader:
     """Tests for the trader module functions."""
@@ -182,15 +182,15 @@ class TestTrader:
     @pytest.fixture
     def mock_rh(self):
         """Create a mock robin_stocks.robinhood module."""
-        with patch('trader.rh') as mock:
+        with patch('trader_with_dashboard.rh') as mock:
             yield mock
 
     @pytest.fixture
     def trader_module(self, mock_config):
         """Import trader module with mocked config."""
         with patch.dict('sys.modules', {'config': mock_config}):
-            with patch('trader.config', mock_config):
-                import trader
+            with patch('trader_with_dashboard.config', mock_config):
+                import trader_with_dashboard as trader
                 return trader
 
     def test_login(self, mock_rh, trader_module):
@@ -210,9 +210,9 @@ class TestTrader:
 
     def test_is_market_open_during_hours(self, trader_module, mock_config):
         """Test market open check during trading hours."""
-        with patch('trader.config', mock_config):
+        with patch('trader_with_dashboard.config', mock_config):
             # Mock time to be during market hours (10:30 AM)
-            with patch('trader.dt') as mock_dt:
+            with patch('trader_with_dashboard.dt') as mock_dt:
                 mock_dt.datetime.now.return_value.time.return_value = dt.time(10, 30, 0)
                 mock_dt.time = dt.time
                 
@@ -220,8 +220,8 @@ class TestTrader:
 
     def test_is_market_open_after_hours(self, trader_module, mock_config):
         """Test market open check after trading hours."""
-        with patch('trader.config', mock_config):
-            with patch('trader.dt') as mock_dt:
+        with patch('trader_with_dashboard.config', mock_config):
+            with patch('trader_with_dashboard.dt') as mock_dt:
                 mock_dt.datetime.now.return_value.time.return_value = dt.time(17, 0, 0)
                 mock_dt.time = dt.time
                 
@@ -229,8 +229,8 @@ class TestTrader:
 
     def test_is_market_open_before_hours(self, trader_module, mock_config):
         """Test market open check before trading hours."""
-        with patch('trader.config', mock_config):
-            with patch('trader.dt') as mock_dt:
+        with patch('trader_with_dashboard.config', mock_config):
+            with patch('trader_with_dashboard.dt') as mock_dt:
                 mock_dt.datetime.now.return_value.time.return_value = dt.time(8, 0, 0)
                 mock_dt.time = dt.time
                 
@@ -313,7 +313,7 @@ class TestTrader:
 # Tests for trader_with_dashboard.py
 # ============================================================================
 class TestTraderWithDashboard:
-    """Tests for the trader_with_dashboard module functions."""
+    """Tests for the trader module functions."""
 
     @pytest.fixture
     def mock_rh(self):
@@ -340,12 +340,12 @@ class TestTraderWithDashboard:
                     with patch('trader_with_dashboard.update_bot_state', mock_update):
                         with patch('trader_with_dashboard.add_trade_log', mock_add_log):
                             with patch('trader_with_dashboard.bot_state', mock_state):
-                                import trader_with_dashboard
-                                trader_with_dashboard.update_bot_state = mock_update
-                                trader_with_dashboard.add_trade_log = mock_add_log
-                                trader_with_dashboard.bot_state = mock_state
-                                trader_with_dashboard.DASHBOARD_ENABLED = True
-                                return trader_with_dashboard
+                                import trader_with_dashboard as trader
+                                trader.update_bot_state = mock_update
+                                trader.add_trade_log = mock_add_log
+                                trader.bot_state = mock_state
+                                trader.DASHBOARD_ENABLED = True
+                                return trader
 
     def test_login(self, mock_rh, dashboard_trader_module):
         """Test Robinhood login with dashboard version."""
@@ -454,8 +454,8 @@ class TestIntegration:
 
     def test_buy_sell_price_adjustment(self):
         """Test that buy/sell prices are adjusted by $0.10."""
-        with patch('trader.rh'):
-            import trader
+        with patch('trader_with_dashboard.rh'):
+            import trader_with_dashboard as trader
             
             # Test that sell uses price - 0.10
             with patch('builtins.print') as mock_print:
@@ -498,12 +498,12 @@ class TestEdgeCases:
 
     def test_holdings_with_fractional_shares(self):
         """Test handling of fractional shares (rounds down to int)."""
-        with patch('trader.rh') as mock_rh:
+        with patch('trader_with_dashboard.rh') as mock_rh:
             mock_rh.account.build_holdings.return_value = {
                 'AAPL': {'quantity': '10.5', 'average_buy_price': '150.00'}
             }
             
-            import trader
+            import trader_with_dashboard as trader
             holdings, _ = trader.get_holdings_and_prices(['AAPL'])
             
             assert holdings['AAPL'] == 10  # Should be integer

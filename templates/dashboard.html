@@ -160,6 +160,14 @@
         .refresh-btn:hover { background: #1a8cd8; }
         .refresh-btn:disabled { background: #2f3336; cursor: not-allowed; }
         
+        .status-btn {
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .status-btn:hover { opacity: 0.85; transform: scale(1.05); }
+        .status-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
         .last-update { color: #71767b; font-size: 12px; margin-top: 16px; text-align: center; }
         .empty-state { padding: 40px 20px; text-align: center; color: #71767b; }
         
@@ -177,7 +185,7 @@
         <a href="/" class="nav-link active">Dashboard</a>
         <a href="/settings" class="nav-link">Settings</a>
         <div class="nav-right">
-            <span id="status-badge" class="status-badge status-stopped">Stopped</span>
+            <button id="status-badge" class="status-badge status-btn status-stopped" onclick="toggleBot()">Stopped</button>
             <button class="refresh-btn" onclick="refreshData()">Refresh</button>
         </div>
     </nav>
@@ -217,7 +225,7 @@
                     </tr>
                 </thead>
                 <tbody id="stocks-body">
-                    <tr><td colspan="7" class="empty-state">Click Refresh to load data</td></tr>
+                    <tr><td colspan="7" class="empty-state">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -239,7 +247,7 @@
                     </tr>
                 </thead>
                 <tbody id="options-body">
-                    <tr><td colspan="9" class="empty-state">No options positions</td></tr>
+                    <tr><td colspan="9" class="empty-state">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -274,8 +282,9 @@
         
         function updateDashboard(data) {
             const badge = document.getElementById('status-badge');
-            badge.textContent = data.running ? 'Running' : 'Stopped';
-            badge.className = 'status-badge ' + (data.running ? 'status-running' : 'status-stopped');
+            badge.textContent = data.running ? '● Running' : '○ Stopped';
+            badge.className = 'status-badge status-btn ' + (data.running ? 'status-running' : 'status-stopped');
+            badge.title = data.running ? 'Click to stop bot' : 'Click to start bot';
             
             document.getElementById('equity').textContent = formatCurrency(data.equity);
             document.getElementById('cash').textContent = formatCurrency(data.cash);
@@ -397,6 +406,33 @@
             }
         }
         
+        async function toggleBot() {
+            const badge = document.getElementById('status-badge');
+            const isRunning = badge.classList.contains('status-running');
+            
+            badge.disabled = true;
+            badge.textContent = isRunning ? 'Stopping...' : 'Starting...';
+            
+            try {
+                const endpoint = isRunning ? '/api/bot/stop' : '/api/bot/start';
+                const response = await fetch(endpoint, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Wait a moment then refresh status
+                    setTimeout(fetchStatus, 1000);
+                } else {
+                    alert(result.message || 'Operation failed');
+                    fetchStatus();
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                fetchStatus();
+            } finally {
+                badge.disabled = false;
+            }
+        }
+        
         async function refreshData() {
             const btn = document.querySelector('.refresh-btn');
             btn.disabled = true;
@@ -415,8 +451,11 @@
             }
         }
         
-        fetchStatus();
-        setInterval(fetchStatus, 30000);
+        // Fetch fresh data on first load
+        (async function init() {
+            await refreshData();
+            setInterval(fetchStatus, 30000);
+        })();
     </script>
 </body>
 </html>
