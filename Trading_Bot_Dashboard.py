@@ -4,9 +4,6 @@ Robinhood Trading Bot with Web Dashboard
 A combined trading bot with a real-time web dashboard.
 The dashboard opens automatically in your browser when you run this file.
 
-Usage:
-    python trading_bot_dashboard.py
-
 Features:
     - Real-time portfolio monitoring
     - Options positions display
@@ -65,7 +62,6 @@ Install all with:
 # ============================================================================
 
 import os                      # For accessing environment variables and file paths
-import sys                     # For system-level operations
 import threading               # For running bot and browser opener in background threads
 import datetime as dt          # For timestamps and market hours checking
 import json                    # For saving/loading settings to JSON file
@@ -95,7 +91,6 @@ class Config:
     """
     Default configuration for the trading bot.
     
-    This replaces the need for an external config.py file.
     All settings can be overridden via the web interface's Settings page,
     which saves to bot_settings.json.
     """
@@ -1240,13 +1235,29 @@ DASHBOARD_HTML = '''
             }
         }
         
-        // Initial load when page opens
-        fetchStatus();
+        // Initial load when page opens - refresh data from Robinhood
+        refreshData();
         
         // Auto-refresh every 30 seconds
         setInterval(() => {
             if (autoRefresh) fetchStatus();
         }, refreshInterval);
+        
+        // Track if we're navigating within the app (not closing)
+        let isNavigating = false;
+        
+        // Mark internal links as navigation (not closing)
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => { isNavigating = true; });
+        });
+        
+        // Shutdown server when page is closed (but not when navigating)
+        window.addEventListener('beforeunload', function() {
+            if (!isNavigating) {
+                // Use sendBeacon for reliable delivery during page unload
+                navigator.sendBeacon('/api/shutdown', '');
+            }
+        });
     </script>
 </body>
 </html>
@@ -1359,6 +1370,7 @@ SETTINGS_HTML = '''
     <div class="container">
         <header>
             <h1>⚙ Bot Settings</h1>
+            <button type="button" class="btn btn-save" onclick="saveSettings()">💾 Save Settings</button>
             <a href="/" class="btn btn-back">← Back to Dashboard</a>
         </header>
         
@@ -1410,8 +1422,6 @@ SETTINGS_HTML = '''
                     <div class="help-text">Time between price checks</div>
                 </div>
             </div>
-            
-            <button type="submit" class="btn btn-save">💾 Save Settings</button>
         </form>
     </div>
     
@@ -1437,9 +1447,7 @@ SETTINGS_HTML = '''
         }
         
         // Handle form submission
-        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
-            e.preventDefault();  // Prevent page reload
-            
+        async function saveSettings() {
             // Parse stocks input (comma-separated, uppercase, trimmed)
             const stocksRaw = document.getElementById('stocks').value;
             const stocks = stocksRaw.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
@@ -1464,19 +1472,34 @@ SETTINGS_HTML = '''
                 
                 const result = await response.json();
                 if (result.success) {
-                    // Show success message briefly
-                    const msg = document.getElementById('successMsg');
-                    msg.style.display = 'block';
-                    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                    // Mark as navigating before redirect
+                    isNavigating = true;
+                    // Redirect to dashboard after saving
+                    window.location.href = '/';
                 }
             } catch (e) {
                 console.error('Error saving settings:', e);
                 alert('Error saving settings');
             }
-        });
+        }
         
         // Load settings when page loads
         loadSettings();
+        
+        // Track if we're navigating within the app (not closing)
+        let isNavigating = false;
+        
+        // Mark internal links as navigation (not closing)
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => { isNavigating = true; });
+        });
+        
+        // Shutdown server when page is closed (but not when navigating)
+        window.addEventListener('beforeunload', function() {
+            if (!isNavigating) {
+                navigator.sendBeacon('/api/shutdown', '');
+            }
+        });
     </script>
 </body>
 </html>
@@ -1589,6 +1612,29 @@ def stop_bot():
     stop_bot_event.set()
     
     return jsonify({'success': True, 'message': 'Stop signal sent'})
+
+
+@app.route('/api/shutdown', methods=['POST'])
+def shutdown_server():
+    """
+    API endpoint to shut down the entire Flask server.
+    
+    URL: http://127.0.0.1:5000/api/shutdown (POST only)
+    Called when browser tab is closed to terminate the program.
+    """
+    # Stop the trading bot first if running
+    global stop_bot_event
+    stop_bot_event.set()
+    
+    # Schedule the shutdown
+    def shutdown():
+        time.sleep(0.5)  # Brief delay to allow response to be sent
+        os._exit(0)  # Force exit the entire program
+    
+    shutdown_thread = threading.Thread(target=shutdown, daemon=True)
+    shutdown_thread.start()
+    
+    return jsonify({'success': True, 'message': 'Server shutting down'})
 
 
 @app.route('/api/refresh')
@@ -1787,6 +1833,7 @@ if __name__ == '__main__':
     print("Settings URL:  http://127.0.0.1:5000/settings")
     print()
     print("Press Ctrl+C to stop the server.")
+    print("Closing the browser tab will also stop the server.")
     print("=" * 60)
     
     # Start browser opener in background thread
