@@ -80,7 +80,7 @@ After credentials are set, you'll see the **Strategy Selection** screen:
 The bot includes 6 pre-configured strategies optimized for different market conditions:
 
 | Preset | Condition | ETFs | Strategy |
-|--------|-----------|------|----------|
+| ------ | --------- | ---- | -------- |
 | 🚀 **Bullish Growth** | Rising markets | QQQ, VGT, SMH, XLK, SOXX | Aggressive growth, larger positions |
 | 🛡️ **Bearish Defense** | Declining markets | SH, GLD, TLT, XLU, VPU | Defensive/inverse ETFs, smaller positions |
 | ⚡ **High Volatility** | Turbulent markets | SPLV, USMV, VYM, SCHD, XLP | Low-vol ETFs, tight position sizing |
@@ -91,6 +91,7 @@ The bot includes 6 pre-configured strategies optimized for different market cond
 ### How Market Detection Works
 
 The bot analyzes:
+
 - **SPY daily change** - Today's market movement
 - **SPY weekly change** - 5-day trend direction
 - **Volatility level** - Based on VIXY behavior
@@ -98,7 +99,7 @@ The bot analyzes:
 
 ## 📁 Project Structure
 
-```
+```python
 robinhood-trading-bot/
 ├── Trading_Bot_Dashboard.py   # Main application (all-in-one)
 ├── requirements.txt           # Python dependencies
@@ -110,14 +111,15 @@ robinhood-trading-bot/
 ## 🖥️ Using the Dashboard
 
 ### Dashboard URL
-```
+
+```txt
 http://127.0.0.1:5000
 ```
 
 ### Available Pages
 
 | Page | URL | Description |
-|------|-----|-------------|
+| ---- | --- | ----------- |
 | Dashboard | `/` | Main portfolio view with controls |
 | Strategy Select | `/select-strategy` | Choose trading strategy |
 | Settings | `/settings` | Configure stocks and parameters |
@@ -161,7 +163,7 @@ Edit `bot_settings.json` directly:
 ### Configuration Options
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+| ------- | ------- | ----------- |
 | `stocks` | Varies by preset | Stock/ETF symbols to monitor |
 | `trading_buffer` | 0.015 - 0.035 | Price deviation from SMA to trigger trades |
 | `sma_window` | 8 - 15 | Number of data points for SMA calculation |
@@ -183,6 +185,7 @@ The bot uses a **Simple Moving Average (SMA)** strategy:
 ### Signal Example
 
 With `trading_buffer = 0.02` (2%):
+
 - If SMA = $100 and price drops to $97 → **BUY** signal
 - If SMA = $100 and price rises to $103 → **SELL** signal
 - If SMA = $100 and price is $99-$101 → **HOLD** signal
@@ -222,6 +225,7 @@ The bot only operates during market hours (9:30 AM - 4:00 PM ET). Outside these 
 ### 2FA Issues
 
 If you use 2FA on Robinhood:
+
 1. The first login may prompt for a code in the terminal
 2. Enter the code from your authenticator app
 3. Session is cached for future logins
@@ -243,7 +247,8 @@ app.run(host='0.0.0.0', port=5001, debug=False)  # Change 5000 to 5001
 ### Skip Strategy Selection
 
 To go directly to dashboard without strategy selection:
-```
+
+```txt
 http://127.0.0.1:5000/?skip_strategy=1
 ```
 
@@ -260,7 +265,7 @@ python Trading_Bot_Dashboard.py
 ## 📋 API Endpoints
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
+| -------- | ------ | ----------- |
 | `/api/status` | GET | Current bot state and portfolio data |
 | `/api/settings` | GET/POST | Read or update settings |
 | `/api/market-condition` | GET | Detect current market condition |
@@ -274,7 +279,7 @@ python Trading_Bot_Dashboard.py
 
 ## ⚖️ Disclaimer
 
-**This software is for educational purposes only.** 
+**This software is for educational purposes only.**
 
 - Trading stocks involves risk of loss
 - Past performance does not guarantee future results
