@@ -483,15 +483,32 @@ current_market_condition = {
     'detected_at': None
 }
 
+# Cache duration for market condition (in seconds)
+MARKET_CONDITION_CACHE_DURATION = 300  # 5 minutes
 
-def detect_market_condition():
+
+def detect_market_condition(use_cache=True):
     """
     Detect current market condition based on SPY performance and VIX levels.
+    
+    Args:
+        use_cache: If True, return cached result if available and fresh
     
     Returns:
         dict: Market condition info including type, confidence, and metrics
     """
     global current_market_condition
+    
+    # Check if we have a fresh cached result
+    if use_cache and current_market_condition.get('detected_at'):
+        try:
+            cached_time = dt.datetime.strptime(current_market_condition['detected_at'], '%Y-%m-%d %H:%M:%S')
+            age_seconds = (dt.datetime.now() - cached_time).total_seconds()
+            if age_seconds < MARKET_CONDITION_CACHE_DURATION:
+                print(f"Using cached market condition (age: {int(age_seconds)}s)")
+                return current_market_condition
+        except:
+            pass  # If parsing fails, fetch fresh data
     
     try:
         # Get credentials
@@ -503,9 +520,14 @@ def detect_market_condition():
                 'condition': 'stagnant',
                 'confidence': 50,
                 'spy_change': 0,
+                'weekly_change': 0,
                 'vix_level': 20,
-                'error': 'No credentials'
+                'spy_price': 0,
+                'error': 'No credentials',
+                'detected_at': dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
+        
+        print("Fetching market data from Robinhood...")
         
         # Login to Robinhood
         rh.authentication.login(username, password, store_session=True)
@@ -596,6 +618,7 @@ def detect_market_condition():
         }
         
         current_market_condition = result
+        print(f"Market condition detected: {condition} (confidence: {confidence}%)")
         return result
         
     except Exception as e:
@@ -604,8 +627,11 @@ def detect_market_condition():
             'condition': 'stagnant',
             'confidence': 50,
             'spy_change': 0,
+            'weekly_change': 0,
             'vix_level': 20,
-            'error': str(e)
+            'spy_price': 0,
+            'error': str(e),
+            'detected_at': dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
 
@@ -660,7 +686,7 @@ STRATEGY_SELECT_HTML = '''
         
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         h1 {
             font-size: 2.2rem;
@@ -671,146 +697,171 @@ STRATEGY_SELECT_HTML = '''
         }
         .subtitle { color: #888; font-size: 1.1rem; }
         
+        /* Quick actions bar */
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn-quick {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-skip {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-skip:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .btn-saved {
+            background: linear-gradient(90deg, #9c27b0, #e91e63);
+            color: #fff;
+        }
+        .btn-saved:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(156, 39, 176, 0.3);
+        }
+        
         /* Countdown timer */
         .countdown-container {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 12px;
             background: rgba(255, 152, 0, 0.1);
             border: 1px solid rgba(255, 152, 0, 0.3);
             border-radius: 12px;
         }
-        .countdown-text { color: #ffb74d; font-size: 0.95rem; }
+        .countdown-text { color: #ffb74d; font-size: 0.9rem; }
         .countdown-timer {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
             color: #ff9800;
-            margin: 10px 0;
+            margin: 5px 0;
         }
-        .countdown-action { color: #888; font-size: 0.9rem; }
+        .countdown-action { color: #888; font-size: 0.85rem; }
         
         /* Market condition banner */
         .market-banner {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 25px;
+            padding: 20px;
+            margin-bottom: 20px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .market-condition {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
             margin-bottom: 10px;
         }
         .market-metrics {
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 25px;
             flex-wrap: wrap;
-            margin-top: 15px;
+            margin-top: 12px;
         }
         .metric {
             text-align: center;
         }
         .metric-value {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 600;
         }
-        .metric-label { color: #888; font-size: 0.85rem; }
+        .metric-label { color: #888; font-size: 0.8rem; }
         .positive { color: #00c853; }
         .negative { color: #ff5252; }
         
         /* Strategy cards grid */
         .strategy-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
         }
         
         .strategy-card {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 25px;
+            border-radius: 12px;
+            padding: 20px;
             border: 2px solid transparent;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
         }
         .strategy-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             border-color: rgba(255, 255, 255, 0.2);
         }
         .strategy-card.recommended {
             border-color: #00d4ff;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
         }
         .strategy-card.selected {
             border-color: #00ff88;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
         }
         
         .recommended-badge {
             position: absolute;
-            top: -10px;
-            right: 20px;
+            top: -8px;
+            right: 15px;
             background: linear-gradient(90deg, #00d4ff, #00ff88);
             color: #000;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
         
         .strategy-header {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 10px;
         }
-        .strategy-icon { font-size: 2.5rem; }
-        .strategy-title { font-size: 1.3rem; font-weight: 600; }
-        .strategy-desc { color: #888; font-size: 0.9rem; margin-bottom: 15px; }
+        .strategy-icon { font-size: 2rem; }
+        .strategy-title { font-size: 1.1rem; font-weight: 600; }
+        .strategy-desc { color: #888; font-size: 0.85rem; margin-bottom: 12px; }
         
         .strategy-details {
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
         }
         .detail-row {
             display: flex;
             justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 3px 0;
         }
-        .detail-row:last-child { border-bottom: none; }
         .detail-label { color: #888; }
         .detail-value { color: #00d4ff; font-weight: 500; }
         
         .etf-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 5px;
+            margin-top: 8px;
         }
         .etf-tag {
             background: rgba(0, 212, 255, 0.2);
             color: #00d4ff;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 4px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
-        }
-        
-        .rationale {
-            font-size: 0.85rem;
-            color: #aaa;
-            font-style: italic;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         /* Saved strategy card */
@@ -830,10 +881,10 @@ STRATEGY_SELECT_HTML = '''
             flex-wrap: wrap;
         }
         .btn {
-            padding: 15px 40px;
+            padding: 14px 35px;
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -846,48 +897,27 @@ STRATEGY_SELECT_HTML = '''
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
         }
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
         
-        /* Skip link */
-        .skip-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .skip-link a {
-            color: #666;
-            text-decoration: none;
+        /* Loading state */
+        .loading-text {
+            color: #888;
             font-size: 0.9rem;
         }
-        .skip-link a:hover {
-            color: #888;
-            text-decoration: underline;
-        }
-        
-        /* Loading state */
-        .loading {
-            text-align: center;
-            padding: 60px;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
+        .spinner-small {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-top-color: #00d4ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin-right: 8px;
+            vertical-align: middle;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -901,22 +931,33 @@ STRATEGY_SELECT_HTML = '''
             <p class="subtitle">Choose your trading strategy based on current market conditions</p>
         </header>
         
+        <!-- Quick action buttons -->
+        <div class="quick-actions">
+            <button class="btn-quick btn-saved" onclick="useSavedStrategy()" id="savedBtn" style="display: none;">
+                💾 Use My Saved Strategy
+            </button>
+            <a href="/?skip_strategy=1" class="btn-quick btn-skip">
+                ⏭️ Skip to Dashboard
+            </a>
+        </div>
+        
         <!-- Countdown timer -->
         <div class="countdown-container" id="countdownContainer">
             <div class="countdown-text">Auto-selecting recommended strategy in:</div>
             <div class="countdown-timer" id="countdownTimer">30</div>
-            <div class="countdown-action">Recommended: <strong id="recommendedName">Loading...</strong></div>
+            <div class="countdown-action">
+                <span id="loadingStatus"><span class="spinner-small"></span>Analyzing market...</span>
+                <span id="recommendedName" style="display: none;">Recommended: <strong></strong></span>
+            </div>
         </div>
         
         <!-- Market condition banner -->
         <div class="market-banner" id="marketBanner">
-            <div class="loading" id="loadingIndicator">
-                <div class="spinner"></div>
-                <div>Analyzing market conditions...</div>
-            </div>
-            <div id="marketInfo" style="display: none;">
-                <div class="market-condition" id="marketCondition">Loading...</div>
-                <div class="market-metrics">
+            <div id="marketInfo">
+                <div class="market-condition" id="marketCondition">
+                    <span class="spinner-small"></span> Detecting Market Condition...
+                </div>
+                <div class="market-metrics" id="marketMetrics" style="display: none;">
                     <div class="metric">
                         <div class="metric-value" id="spyChange">-</div>
                         <div class="metric-label">SPY Today</div>
@@ -939,7 +980,7 @@ STRATEGY_SELECT_HTML = '''
         
         <!-- Strategy cards -->
         <div class="strategy-grid" id="strategyGrid">
-            <!-- Cards will be populated by JavaScript -->
+            <!-- Cards are rendered immediately with JavaScript -->
         </div>
         
         <!-- Action buttons -->
@@ -947,10 +988,6 @@ STRATEGY_SELECT_HTML = '''
             <button class="btn btn-primary" id="applyBtn" onclick="applySelectedStrategy()" disabled>
                 🚀 Apply Selected Strategy
             </button>
-        </div>
-        
-        <div class="skip-link">
-            <a href="/" onclick="skipSelection()">Skip and go to dashboard →</a>
         </div>
     </div>
     
@@ -961,6 +998,7 @@ STRATEGY_SELECT_HTML = '''
         let recommendedStrategy = 'stagnant';
         let marketData = null;
         let savedSettings = null;
+        let marketDataLoaded = false;
         
         const presets = {
             bullish: {
@@ -972,8 +1010,7 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.025,
                 sma_window: 15,
                 max_cash_per_stock: 0.30,
-                check_interval: 45,
-                rationale: 'Focus on high-growth tech ETFs with larger positions to maximize gains in uptrending markets.'
+                check_interval: 45
             },
             bearish: {
                 name: 'Bearish Defense',
@@ -984,8 +1021,7 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.015,
                 sma_window: 8,
                 max_cash_per_stock: 0.15,
-                check_interval: 20,
-                rationale: 'Inverse and defensive ETFs (gold, bonds, utilities) with smaller positions to preserve capital.'
+                check_interval: 20
             },
             volatile: {
                 name: 'High Volatility',
@@ -996,8 +1032,7 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.035,
                 sma_window: 10,
                 max_cash_per_stock: 0.12,
-                check_interval: 25,
-                rationale: 'Low-volatility and dividend ETFs with tight position sizing to reduce risk in choppy markets.'
+                check_interval: 25
             },
             stagnant: {
                 name: 'Sideways Income',
@@ -1008,8 +1043,7 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.02,
                 sma_window: 12,
                 max_cash_per_stock: 0.25,
-                check_interval: 60,
-                rationale: 'High-dividend ETFs for income generation when capital appreciation is limited.'
+                check_interval: 60
             },
             recovery: {
                 name: 'Market Recovery',
@@ -1020,8 +1054,7 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.02,
                 sma_window: 12,
                 max_cash_per_stock: 0.22,
-                check_interval: 30,
-                rationale: 'Broad market and small-cap ETFs to capture recovery gains across all sectors.'
+                check_interval: 30
             },
             correction: {
                 name: 'Correction Mode',
@@ -1032,10 +1065,77 @@ STRATEGY_SELECT_HTML = '''
                 trading_buffer: 0.018,
                 sma_window: 10,
                 max_cash_per_stock: 0.20,
-                check_interval: 25,
-                rationale: 'Quality broad-market ETFs positioned for dip-buying opportunities during market corrections.'
+                check_interval: 25
             }
         };
+        
+        // Render strategy cards IMMEDIATELY (before any API calls)
+        function renderStrategyCards() {
+            const grid = document.getElementById('strategyGrid');
+            let html = '';
+            
+            // Add saved strategy card if exists
+            if (savedSettings && savedSettings.stocks && savedSettings.stocks.length > 0) {
+                html += `
+                    <div class="strategy-card saved-strategy-card" onclick="selectStrategy('saved')" id="card-saved">
+                        <div class="strategy-header">
+                            <div class="strategy-icon">💾</div>
+                            <div class="strategy-title">Your Saved Strategy</div>
+                        </div>
+                        <div class="strategy-desc">Continue with your previously configured settings</div>
+                        <div class="strategy-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Buffer</span>
+                                <span class="detail-value">${(savedSettings.trading_buffer * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">SMA Window</span>
+                                <span class="detail-value">${savedSettings.sma_window} periods</span>
+                            </div>
+                        </div>
+                        <div class="etf-list">
+                            ${savedSettings.stocks.slice(0, 5).map(s => `<span class="etf-tag">${s}</span>`).join('')}
+                            ${savedSettings.stocks.length > 5 ? `<span class="etf-tag">+${savedSettings.stocks.length - 5}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add preset cards
+            for (const [key, preset] of Object.entries(presets)) {
+                const isRecommended = marketDataLoaded && key === recommendedStrategy;
+                html += `
+                    <div class="strategy-card ${isRecommended ? 'recommended' : ''}" 
+                         onclick="selectStrategy('${key}')" id="card-${key}">
+                        ${isRecommended ? '<div class="recommended-badge">✨ RECOMMENDED</div>' : ''}
+                        <div class="strategy-header">
+                            <div class="strategy-icon">${preset.icon}</div>
+                            <div class="strategy-title" style="color: ${preset.color}">${preset.name}</div>
+                        </div>
+                        <div class="strategy-desc">${preset.description}</div>
+                        <div class="strategy-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Buffer</span>
+                                <span class="detail-value">${(preset.trading_buffer * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">SMA</span>
+                                <span class="detail-value">${preset.sma_window} periods</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Max Position</span>
+                                <span class="detail-value">${(preset.max_cash_per_stock * 100).toFixed(0)}%</span>
+                            </div>
+                        </div>
+                        <div class="etf-list">
+                            ${preset.stocks.map(s => `<span class="etf-tag">${s}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            grid.innerHTML = html;
+        }
         
         // Start countdown timer
         function startCountdown() {
@@ -1062,22 +1162,40 @@ STRATEGY_SELECT_HTML = '''
             applySelectedStrategy();
         }
         
-        // Fetch market condition from server
+        // Fetch saved settings (fast - just reads JSON)
+        async function fetchSavedSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                savedSettings = await response.json();
+                
+                // Show saved strategy button if exists
+                if (savedSettings && savedSettings.stocks && savedSettings.stocks.length > 0) {
+                    document.getElementById('savedBtn').style.display = 'inline-block';
+                }
+                
+                // Re-render cards with saved strategy
+                renderStrategyCards();
+            } catch (e) {
+                console.error('Error fetching settings:', e);
+            }
+        }
+        
+        // Fetch market condition (slow - makes API calls to Robinhood)
         async function fetchMarketCondition() {
             try {
                 const response = await fetch('/api/market-condition');
                 marketData = await response.json();
+                marketDataLoaded = true;
                 
                 recommendedStrategy = marketData.condition || 'stagnant';
                 
-                // Update UI
-                document.getElementById('loadingIndicator').style.display = 'none';
-                document.getElementById('marketInfo').style.display = 'block';
-                
+                // Update UI with market data
                 const preset = presets[recommendedStrategy];
                 document.getElementById('marketCondition').innerHTML = 
                     `${preset.icon} ${preset.name} Market Detected`;
                 document.getElementById('marketCondition').style.color = preset.color;
+                
+                document.getElementById('marketMetrics').style.display = 'flex';
                 
                 const spyChange = marketData.spy_change || 0;
                 const spyEl = document.getElementById('spyChange');
@@ -1093,109 +1211,21 @@ STRATEGY_SELECT_HTML = '''
                     marketData.vix_level > 25 ? 'High' : marketData.vix_level < 15 ? 'Low' : 'Normal';
                 document.getElementById('confidence').textContent = marketData.confidence + '%';
                 
-                document.getElementById('recommendedName').textContent = preset.name;
+                // Update countdown text
+                document.getElementById('loadingStatus').style.display = 'none';
+                const recName = document.getElementById('recommendedName');
+                recName.style.display = 'inline';
+                recName.querySelector('strong').textContent = preset.name;
                 
-                // Render strategy cards
+                // Re-render cards with recommended badge
                 renderStrategyCards();
-                
-                // Start countdown
-                startCountdown();
                 
             } catch (e) {
                 console.error('Error fetching market condition:', e);
-                document.getElementById('loadingIndicator').innerHTML = 
-                    '<div style="color: #ff9800;">Could not analyze market. Using default strategies.</div>';
-                recommendedStrategy = 'stagnant';
-                renderStrategyCards();
-                startCountdown();
+                document.getElementById('marketCondition').innerHTML = 
+                    '📊 Using Default Strategy (Sideways Income)';
+                document.getElementById('loadingStatus').textContent = 'Could not detect market conditions';
             }
-        }
-        
-        // Fetch saved settings
-        async function fetchSavedSettings() {
-            try {
-                const response = await fetch('/api/settings');
-                savedSettings = await response.json();
-            } catch (e) {
-                console.error('Error fetching settings:', e);
-            }
-        }
-        
-        // Render strategy cards
-        function renderStrategyCards() {
-            const grid = document.getElementById('strategyGrid');
-            let html = '';
-            
-            // Add saved strategy card first if exists
-            if (savedSettings && savedSettings.stocks && savedSettings.stocks.length > 0) {
-                const isRecommended = false;
-                html += `
-                    <div class="strategy-card saved-strategy-card" onclick="selectStrategy('saved')" id="card-saved">
-                        <div class="strategy-header">
-                            <div class="strategy-icon">💾</div>
-                            <div class="strategy-title">Your Saved Strategy</div>
-                        </div>
-                        <div class="strategy-desc">Continue with your previously configured settings</div>
-                        <div class="strategy-details">
-                            <div class="detail-row">
-                                <span class="detail-label">Buffer</span>
-                                <span class="detail-value">${(savedSettings.trading_buffer * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">SMA Window</span>
-                                <span class="detail-value">${savedSettings.sma_window} periods</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Max Position</span>
-                                <span class="detail-value">${(savedSettings.max_cash_per_stock * 100).toFixed(0)}%</span>
-                            </div>
-                        </div>
-                        <div class="etf-list">
-                            ${savedSettings.stocks.map(s => `<span class="etf-tag">${s}</span>`).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Add preset cards
-            for (const [key, preset] of Object.entries(presets)) {
-                const isRecommended = key === recommendedStrategy;
-                html += `
-                    <div class="strategy-card ${isRecommended ? 'recommended' : ''}" 
-                         onclick="selectStrategy('${key}')" id="card-${key}">
-                        ${isRecommended ? '<div class="recommended-badge">✨ RECOMMENDED</div>' : ''}
-                        <div class="strategy-header">
-                            <div class="strategy-icon">${preset.icon}</div>
-                            <div class="strategy-title" style="color: ${preset.color}">${preset.name}</div>
-                        </div>
-                        <div class="strategy-desc">${preset.description}</div>
-                        <div class="strategy-details">
-                            <div class="detail-row">
-                                <span class="detail-label">Trading Buffer</span>
-                                <span class="detail-value">${(preset.trading_buffer * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">SMA Window</span>
-                                <span class="detail-value">${preset.sma_window} periods</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Max Position</span>
-                                <span class="detail-value">${(preset.max_cash_per_stock * 100).toFixed(0)}%</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Check Interval</span>
-                                <span class="detail-value">${preset.check_interval}s</span>
-                            </div>
-                        </div>
-                        <div class="etf-list">
-                            ${preset.stocks.map(s => `<span class="etf-tag">${s}</span>`).join('')}
-                        </div>
-                        <div class="rationale">${preset.rationale}</div>
-                    </div>
-                `;
-            }
-            
-            grid.innerHTML = html;
         }
         
         // Select a strategy
@@ -1208,10 +1238,17 @@ STRATEGY_SELECT_HTML = '''
             });
             
             // Add selected class to clicked card
-            document.getElementById('card-' + key).classList.add('selected');
+            const card = document.getElementById('card-' + key);
+            if (card) card.classList.add('selected');
             
             selectedStrategy = key;
             document.getElementById('applyBtn').disabled = false;
+        }
+        
+        // Use saved strategy
+        function useSavedStrategy() {
+            selectStrategy('saved');
+            applySelectedStrategy();
         }
         
         // Apply selected strategy
@@ -1234,7 +1271,7 @@ STRATEGY_SELECT_HTML = '''
                 const result = await response.json();
                 
                 if (result.success) {
-                    window.location.href = '/';
+                    window.location.href = '/?skip_strategy=1';
                 } else {
                     alert('Error applying strategy: ' + result.message);
                     btn.disabled = false;
@@ -1248,16 +1285,19 @@ STRATEGY_SELECT_HTML = '''
             }
         }
         
-        // Skip selection and go to dashboard
-        function skipSelection() {
-            stopCountdown();
-            window.location.href = '/?skip_strategy=1';
-        }
-        
-        // Initialize
+        // Initialize - render immediately, fetch data in background
         async function init() {
+            // 1. Render cards immediately with default state
+            renderStrategyCards();
+            
+            // 2. Start countdown immediately
+            startCountdown();
+            
+            // 3. Fetch saved settings (fast)
             await fetchSavedSettings();
-            await fetchMarketCondition();
+            
+            // 4. Fetch market condition (slow - runs in background)
+            fetchMarketCondition();
         }
         
         init();
