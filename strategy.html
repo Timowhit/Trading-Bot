@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Strategy - Trading Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: #888; font-size: 1.1rem; }
+        
+        /* Quick actions bar */
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn-quick {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-skip {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-skip:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .btn-saved {
+            background: linear-gradient(90deg, #9c27b0, #e91e63);
+            color: #fff;
+        }
+        .btn-saved:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(156, 39, 176, 0.3);
+        }
+        
+        /* Countdown timer */
+        .countdown-container {
+            text-align: center;
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            border-radius: 12px;
+        }
+        .countdown-text { color: #ffb74d; font-size: 0.9rem; }
+        .countdown-timer {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ff9800;
+            margin: 5px 0;
+        }
+        .countdown-action { color: #888; font-size: 0.85rem; }
+        
+        /* Market condition banner */
+        .market-banner {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .market-condition {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .market-metrics {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .metric {
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .metric-label { color: #888; font-size: 0.8rem; }
+        .positive { color: #00c853; }
+        .negative { color: #ff5252; }
+        
+        /* Strategy cards grid */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .strategy-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .strategy-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .strategy-card.recommended {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+        .strategy-card.selected {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .recommended-badge {
+            position: absolute;
+            top: -8px;
+            right: 15px;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .strategy-icon { font-size: 2rem; }
+        .strategy-title { font-size: 1.1rem; font-weight: 600; }
+        .strategy-desc { color: #888; font-size: 0.85rem; margin-bottom: 12px; }
+        
+        .strategy-details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+        }
+        .detail-label { color: #888; }
+        .detail-value { color: #00d4ff; font-weight: 500; }
+        
+        .etf-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .etf-tag {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        /* Saved strategy card */
+        .saved-strategy-card {
+            background: rgba(156, 39, 176, 0.1);
+            border-color: rgba(156, 39, 176, 0.3);
+        }
+        .saved-strategy-card:hover {
+            border-color: #9c27b0;
+        }
+        
+        /* Action buttons */
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 14px 35px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            color: #000;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Loading state */
+        .loading-text {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .spinner-small {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Trading Bot Strategy Selection</h1>
+            <p class="subtitle">Choose your trading strategy based on current market conditions</p>
+        </header>
+        
+        <!-- Quick action buttons -->
+        <div class="quick-actions">
+            <button class="btn-quick btn-saved" onclick="useSavedStrategy()" id="savedBtn" style="display: none;">
+                💾 Use My Saved Strategy
+            </button>
+            <a href="/?skip_strategy=1" class="btn-quick btn-skip">
+                ⏭️ Skip to Dashboard
+            </a>
+        </div>
+        
+        <!-- Countdown timer -->
+        <div class="countdown-container" id="countdownContainer">
+            <div class="countdown-text">Auto-selecting recommended strategy in:</div>
+            <div class="countdown-timer" id="countdownTimer">30</div>
+            <div class="countdown-action">
+                <span id="loadingStatus"><span class="spinner-small"></span>Analyzing market...</span>
+                <span id="recommendedName" style="display: none;">Recommended: <strong></strong></span>
+            </div>
+        </div>
+        
+        <!-- Market condition banner -->
+        <div class="market-banner" id="marketBanner">
+            <div id="marketInfo">
+                <div class="market-condition" id="marketCondition">
+                    <span class="spinner-small"></span> Detecting Market Condition...
+                </div>
+                <div class="market-metrics" id="marketMetrics" style="display: none;">
+                    <div class="metric">
+                        <div class="metric-value" id="spyChange">-</div>
+                        <div class="metric-label">SPY Today</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="weeklyChange">-</div>
+                        <div class="metric-label">SPY Weekly</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="vixLevel">-</div>
+                        <div class="metric-label">Volatility</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="confidence">-</div>
+                        <div class="metric-label">Confidence</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Strategy cards -->
+        <div class="strategy-grid" id="strategyGrid">
+            <!-- Cards are rendered immediately with JavaScript -->
+        </div>
+        
+        <!-- Action buttons -->
+        <div class="actions">
+            <button class="btn btn-primary" id="applyBtn" onclick="applySelectedStrategy()" disabled>
+                🚀 Apply Selected Strategy
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        let countdown = 30;
+        let countdownInterval;
+        let selectedStrategy = null;
+        let recommendedStrategy = 'stagnant';
+        let marketData = null;
+        let savedSettings = null;
+        let marketDataLoaded = false;
+        
+        const presets = {
+            bullish: {
+                name: 'Bullish Growth',
+                description: 'Aggressive growth strategy for rising markets',
+                icon: '🚀',
+                color: '#00c853',
+                stocks: ['QQQ', 'VGT', 'SMH', 'XLK', 'SOXX'],
+                trading_buffer: 0.025,
+                sma_window: 15,
+                max_cash_per_stock: 0.30,
+                check_interval: 45
+            },
+            bearish: {
+                name: 'Bearish Defense',
+                description: 'Defensive strategy for declining markets',
+                icon: '🛡️',
+                color: '#ff5252',
+                stocks: ['SH', 'GLD', 'TLT', 'XLU', 'VPU'],
+                trading_buffer: 0.015,
+                sma_window: 8,
+                max_cash_per_stock: 0.15,
+                check_interval: 20
+            },
+            volatile: {
+                name: 'High Volatility',
+                description: 'Cautious strategy for turbulent markets',
+                icon: '⚡',
+                color: '#ff9800',
+                stocks: ['SPLV', 'USMV', 'VYM', 'SCHD', 'XLP'],
+                trading_buffer: 0.035,
+                sma_window: 10,
+                max_cash_per_stock: 0.12,
+                check_interval: 25
+            },
+            stagnant: {
+                name: 'Sideways Income',
+                description: 'Income-focused strategy for flat markets',
+                icon: '📊',
+                color: '#9c27b0',
+                stocks: ['VYM', 'SCHD', 'HDV', 'DVY', 'JEPI'],
+                trading_buffer: 0.02,
+                sma_window: 12,
+                max_cash_per_stock: 0.25,
+                check_interval: 60
+            },
+            recovery: {
+                name: 'Market Recovery',
+                description: 'Balanced strategy for recovering markets',
+                icon: '📈',
+                color: '#2196f3',
+                stocks: ['VTI', 'SPY', 'IWM', 'XLF', 'VB'],
+                trading_buffer: 0.02,
+                sma_window: 12,
+                max_cash_per_stock: 0.22,
+                check_interval: 30
+            },
+            correction: {
+                name: 'Correction Mode',
+                description: 'Opportunistic buying during pullbacks',
+                icon: '🎯',
+                color: '#00bcd4',
+                stocks: ['VOO', 'QQQ', 'VTI', 'SCHG', 'VUG'],
+                trading_buffer: 0.018,
+                sma_window: 10,
+                max_cash_per_stock: 0.20,
+                check_interval: 25
+            }
+        };
+        
+        // Render strategy cards IMMEDIATELY (before any API calls)
+        function renderStrategyCards() {
+            const grid = document.getElementById('strategyGrid');
+            let html = '';
+            
+            // Add saved strategy card if exists
+            if (savedSettings && savedSettings.stocks && savedSettings.stocks.length > 0) {
+                html += `
+                    <div class="strategy-card saved-strategy-card" onclick="selectStrategy('saved')" id="card-saved">
+                        <div class="strategy-header">
+                            <div class="strategy-icon">💾</div>
+                            <div class="strategy-title">Your Saved Strategy</div>
+                        </div>
+                        <div class="strategy-desc">Continue with your previously configured settings</div>
+                        <div class="strategy-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Buffer</span>
+                                <span class="detail-value">${(savedSettings.trading_buffer * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">SMA Window</span>
+                                <span class="detail-value">${savedSettings.sma_window} periods</span>
+                            </div>
+                        </div>
+                        <div class="etf-list">
+                            ${savedSettings.stocks.slice(0, 5).map(s => `<span class="etf-tag">${s}</span>`).join('')}
+                            ${savedSettings.stocks.length > 5 ? `<span class="etf-tag">+${savedSettings.stocks.length - 5}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add preset cards
+            for (const [key, preset] of Object.entries(presets)) {
+                const isRecommended = marketDataLoaded && key === recommendedStrategy;
+                html += `
+                    <div class="strategy-card ${isRecommended ? 'recommended' : ''}" 
+                         onclick="selectStrategy('${key}')" id="card-${key}">
+                        ${isRecommended ? '<div class="recommended-badge">✨ RECOMMENDED</div>' : ''}
+                        <div class="strategy-header">
+                            <div class="strategy-icon">${preset.icon}</div>
+                            <div class="strategy-title" style="color: ${preset.color}">${preset.name}</div>
+                        </div>
+                        <div class="strategy-desc">${preset.description}</div>
+                        <div class="strategy-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Buffer</span>
+                                <span class="detail-value">${(preset.trading_buffer * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">SMA</span>
+                                <span class="detail-value">${preset.sma_window} periods</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Max Position</span>
+                                <span class="detail-value">${(preset.max_cash_per_stock * 100).toFixed(0)}%</span>
+                            </div>
+                        </div>
+                        <div class="etf-list">
+                            ${preset.stocks.map(s => `<span class="etf-tag">${s}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            grid.innerHTML = html;
+        }
+        
+        // Start countdown timer
+        function startCountdown() {
+            countdownInterval = setInterval(() => {
+                countdown--;
+                document.getElementById('countdownTimer').textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    autoSelectRecommended();
+                }
+            }, 1000);
+        }
+        
+        // Stop countdown
+        function stopCountdown() {
+            clearInterval(countdownInterval);
+            document.getElementById('countdownContainer').style.display = 'none';
+        }
+        
+        // Auto-select recommended strategy
+        function autoSelectRecommended() {
+            selectedStrategy = recommendedStrategy;
+            applySelectedStrategy();
+        }
+        
+        // Fetch saved settings (fast - just reads JSON)
+        async function fetchSavedSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                savedSettings = await response.json();
+                
+                // Show saved strategy button if exists
+                if (savedSettings && savedSettings.stocks && savedSettings.stocks.length > 0) {
+                    document.getElementById('savedBtn').style.display = 'inline-block';
+                }
+                
+                // Re-render cards with saved strategy
+                renderStrategyCards();
+            } catch (e) {
+                console.error('Error fetching settings:', e);
+            }
+        }
+        
+        // Fetch market condition (slow - makes API calls to Robinhood)
+        async function fetchMarketCondition() {
+            try {
+                const response = await fetch('/api/market-condition');
+                marketData = await response.json();
+                marketDataLoaded = true;
+                
+                recommendedStrategy = marketData.condition || 'stagnant';
+                
+                // Update UI with market data
+                const preset = presets[recommendedStrategy];
+                document.getElementById('marketCondition').innerHTML = 
+                    `${preset.icon} ${preset.name} Market Detected`;
+                document.getElementById('marketCondition').style.color = preset.color;
+                
+                document.getElementById('marketMetrics').style.display = 'flex';
+                
+                const spyChange = marketData.spy_change || 0;
+                const spyEl = document.getElementById('spyChange');
+                spyEl.textContent = (spyChange >= 0 ? '+' : '') + spyChange.toFixed(2) + '%';
+                spyEl.className = 'metric-value ' + (spyChange >= 0 ? 'positive' : 'negative');
+                
+                const weeklyChange = marketData.weekly_change || 0;
+                const weeklyEl = document.getElementById('weeklyChange');
+                weeklyEl.textContent = (weeklyChange >= 0 ? '+' : '') + weeklyChange.toFixed(2) + '%';
+                weeklyEl.className = 'metric-value ' + (weeklyChange >= 0 ? 'positive' : 'negative');
+                
+                document.getElementById('vixLevel').textContent = 
+                    marketData.vix_level > 25 ? 'High' : marketData.vix_level < 15 ? 'Low' : 'Normal';
+                document.getElementById('confidence').textContent = marketData.confidence + '%';
+                
+                // Update countdown text
+                document.getElementById('loadingStatus').style.display = 'none';
+                const recName = document.getElementById('recommendedName');
+                recName.style.display = 'inline';
+                recName.querySelector('strong').textContent = preset.name;
+                
+                // Re-render cards with recommended badge
+                renderStrategyCards();
+                
+            } catch (e) {
+                console.error('Error fetching market condition:', e);
+                document.getElementById('marketCondition').innerHTML = 
+                    '📊 Using Default Strategy (Sideways Income)';
+                document.getElementById('loadingStatus').textContent = 'Could not detect market conditions';
+            }
+        }
+        
+        // Select a strategy
+        function selectStrategy(key) {
+            stopCountdown();
+            
+            // Remove selected class from all cards
+            document.querySelectorAll('.strategy-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card
+            const card = document.getElementById('card-' + key);
+            if (card) card.classList.add('selected');
+            
+            selectedStrategy = key;
+            document.getElementById('applyBtn').disabled = false;
+        }
+        
+        // Use saved strategy
+        function useSavedStrategy() {
+            selectStrategy('saved');
+            applySelectedStrategy();
+        }
+        
+        // Apply selected strategy
+        async function applySelectedStrategy() {
+            if (!selectedStrategy) {
+                selectedStrategy = recommendedStrategy;
+            }
+            
+            const btn = document.getElementById('applyBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Applying...';
+            
+            try {
+                const response = await fetch('/api/apply-strategy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategy: selectedStrategy })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.location.href = '/?skip_strategy=1';
+                } else {
+                    alert('Error applying strategy: ' + result.message);
+                    btn.disabled = false;
+                    btn.textContent = '🚀 Apply Selected Strategy';
+                }
+            } catch (e) {
+                console.error('Error:', e);
+                alert('Error applying strategy');
+                btn.disabled = false;
+                btn.textContent = '🚀 Apply Selected Strategy';
+            }
+        }
+        
+        // Initialize - render immediately, fetch data in background
+        async function init() {
+            // 1. Render cards immediately with default state
+            renderStrategyCards();
+            
+            // 2. Start countdown immediately
+            startCountdown();
+            
+            // 3. Fetch saved settings (fast)
+            await fetchSavedSettings();
+            
+            // 4. Fetch market condition (slow - runs in background)
+            fetchMarketCondition();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
